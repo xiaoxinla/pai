@@ -138,20 +138,19 @@ Below we show a complete list of environment variables accessible in a Docker co
 | PAI_DATA_DIR                       | `dataDir` in config file                 |
 | PAI_OUTPUT_DIR                     | `outputDir`in config file or the generated path if `outputDir` is not specified |
 | PAI_CODE_DIR                       | `codeDir` in config file                 |
-| PAI_TASK_ROLE_NAME                 | `taskRole.name` of current task role     |
-| PAI_TASK_ROLE_NUM                  | `taskRole.number` of current task role   |
-| PAI_TASK_CPU_NUM                   | `taskRole.cpuNumber` of current task     |
-| PAI_TASK_MEM_MB                    | `taskRole.memoryMB` of current task      |
-| PAI_TASK_GPU_NUM                   | `taskRole.gpuNumber` of current task     |
-| PAI_TASK_ROLE_INDEX                | Index of current task in the task role, starting from 0 |
-| PAI_TASK_ROLE_NO                   | Index of current task role in config file, starting from 0 |
-| PAI_TASKS_NUM                      | Total tasks' number in config file       |
-| PAI_TASK_ROLES_NUM                 | Total task roles' number in config file  |
-| PAI_KILL_ALL_ON_COMPLETED_TASK_NUM | `killAllOnCompletedTaskNumber` in config file |
-| PAI_CURRENT_CONTAINER_IP           | Allocated ip for current docker container |
-| PAI_CURRENT_CONTAINER_PORT         | Allocated port for current docker container |
-| PAI_TASK_ROLE\_`$i`\_HOST_LIST     | Host list for `PAI_TASK_ROLE_NO == $i`, comma separated `ip:port` string |
-
+| PAI_NAME_OF_TASK_ROLE              | `taskRole.name` of current task role     |
+| PAI_NUMBER_OF_TASKS_IN_TASK_ROLE   | `taskRole.number` of current task role   |
+| PAI_NUMBER_OF_CPUS_IN_TASK_ROLE    | `taskRole.cpuNumber` of current task     |
+| PAI_MEMORY_SIZE_IN_MB_IN_TASK_ROLE | `taskRole.memoryMB` of current task      |
+| PAI_NUMBER_OF_GPUS_IN_TASK_ROLE    | `taskRole.gpuNumber` of current task     |
+| PAI_INDEX_OF_TASK_IN_TASK_ROLE     | Index of current task in the task role, starting from 0 |
+| PAI_INDEX_OF_TASK_ROLE             | Index of current task role in config file, starting from 0 |
+| PAI_NUMBER_OF_TASKS                | Total tasks' number in config file       |
+| PAI_NUMBER_OF_TASK_ROLES           | Total task roles' number in config file  |
+| PAI_NUMBER_OF_TASKS_FOR_KILL_ALL_ON_COMPLETED | `killAllOnCompletedTaskNumber` in config file |
+| PAI_IP_OF_CONTAINER                | Allocated ip for current docker container |
+| PAI_PORT_OF_CONTAINER              | Allocated port for current docker container |
+| PAI_HOST_LIST_OF_TASK_ROLE_`$i`    | Host list for `PAI_TASK_ROLE_NO == $i`, comma separated `ip:port` string |
 
 ## An example deep learning job
 
