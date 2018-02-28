@@ -31,7 +31,7 @@ public class SelectionResult {
 
   private Map<String, Long> selectedNodes = new HashMap<String, Long>();
   private List<Range> overlapPorts = new ArrayList<>();
-  private ResourceDescriptor optimizedResource = ResourceDescriptor.newInstance(0, 0, 0, (long)0);
+  private ResourceDescriptor optimizedResource = ResourceDescriptor.newInstance(0, 0, 0, (long) 0);
 
   public void addSelection(String hostName, Long gpuAttribute, List<Range> portList) {
     if (selectedNodes.isEmpty()) {

@@ -322,15 +322,6 @@ public class ApplicationMaster extends AbstractService {
     stop(new StopStatus(ExitStatusKey.AM_INTERNAL_UNKNOWN_ERROR.toInt(), true, diagnostics));
   }
 
-  // Principle to setup ContainerRequest for a Task:
-  // 1. Check other task's allocated ports
-  //    -> re-use the previous ports if other task successfully allocated.
-  // 2. Exact match the required resource, select a set of candidate nodes.
-  //    -> the match process are: randomize, check label, check gpu type, check resource...
-  //    -> If don't have enough nodes meet the requirement. request will be relax to any node or abort and retry later.
-  // 3. Determine the ports of this task.
-  //    -> If previously already determined, this step will be skipped.
-  // 4. Determine (random) the final candidate node and candidate GPUAttribute.
   private ContainerRequest setupContainerRequest(TaskStatus taskStatus) throws Exception {
     String taskRoleName = taskStatus.getTaskRoleName();
     Priority requestPriority = statusManager.getNextContainerRequestPriority();
@@ -354,6 +345,7 @@ public class ApplicationMaster extends AbstractService {
     if (selectionResult.getSelectedNodeHosts().size() <= 0) {
       return HadoopUtils.toContainerRequest(optimizedRequestResource, requestPriority, requestNodeLabel, null);
     }
+
     String candidateNode = selectionResult.getSelectedNodeHosts().get(0);
     optimizedRequestResource.setGpuAttribute(selectionResult.getGpuAttribute(candidateNode));
     return HadoopUtils.toContainerRequest(optimizedRequestResource, requestPriority, null, candidateNode);
@@ -538,7 +530,7 @@ public class ApplicationMaster extends AbstractService {
     // To keep all tasks have the same port in a task role.
     // Verify if the new allocated container's port is the same with the task already allocated.
     // Will reject this container if the ports are not the same.
-    if(conf.getLauncherConfig().getAmAllTaskWithTheSamePorts()) {
+    if(conf.getLauncherConfig().getAmTaskRoleSharedTheSamePorts()) {
       ResourceDescriptor containerResource = ResourceDescriptor.fromResource(container.getResource());
       List<Range> allocatedPorts = statusManager.getAllocatedTaskPorts(taskStatus.getTaskRoleName());
       if (RangeUtils.getValueNumber(allocatedPorts) > 0) {

@@ -519,19 +519,6 @@ public class StatusManager extends AbstractService {  // THREAD SAFE
     return null;
   }
 
-  public synchronized List<String> getTaskRoleAllocatedHosts(String taskRoleName) {
-    List<TaskStatus> taskStatusList = taskStatuseses.get(taskRoleName).getTaskStatusArray();
-    List<String> allocatedHosts = new ArrayList<>();
-    for (TaskStatus taskstatus : taskStatusList) {
-      if (taskstatus.getTaskState() == TaskState.CONTAINER_ALLOCATED ||
-          taskstatus.getTaskState() == TaskState.CONTAINER_LAUNCHED ||
-          taskstatus.getTaskState() == TaskState.CONTAINER_RUNNING) {
-        allocatedHosts.add(taskstatus.getContainerHost());
-      }
-    }
-    return allocatedHosts;
-  }
-
   public synchronized List<String> getApplicationAllocatedHosts() {
     List<String> allocatedHosts = new ArrayList<>();
     for(TaskStatuses taskStatuses: taskStatuseses.values())
@@ -698,11 +685,6 @@ public class StatusManager extends AbstractService {  // THREAD SAFE
    * REGION ModifyInterface
    * Note to avoid update partially modified Status on ZK
    */
-
-  public synchronized void setTaskRolePortRanges(String taskRoleName, List<Range> ranges) {
-    taskRoleStatuses.get(taskRoleName).setPortRanges(ranges);
-  }
-
   // transitionTaskState is the only interface to modify TaskState for both internal and external
   public synchronized void transitionTaskState(
       TaskStatusLocator locator,

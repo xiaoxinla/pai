@@ -64,24 +64,9 @@ public class LauncherConfiguration implements Serializable {
   private Integer amContainerBasePort = 2000;
   private Integer amSearchNodeBufferFactor = 2;
 
-  private Boolean amEnableNodeLabelFilter = true;
-  private Boolean amEnableGpuTypeFilter = true;
   private Boolean amSkipLocalTriedResource = false;
-  private Boolean amAllTaskWithTheSamePorts = false;
-  private Boolean amAllowNonGpuTaskOnGpuNode = true;
-
-  //The NodeGroupSelection policy are:
-  // CoHost: All tasks run in the same node.
-  // Packing: All tasks run in the node which can be fit in and has least resource available.
-  // None: ignore the node group, think all nodes are in the same big group.
-  private String amNodeGroupSelectionPolicy = SelectionPolicy.NONE.toString();
-
-  //The NodeSelection policy are:
-  // CoHost: All tasks run in the same node group which is random selected.
-  // Packing: All tasks run in the node group which can fit all task in and has least resource available.
-  // TopologyAwareness: choose the node has best Gpu topology arrangement.
-  // None: Random pick a node.
-  private String amNodeSelectionPolicy = SelectionPolicy.NONE.toString();
+  private Boolean amTaskRoleSharedTheSamePorts = false;
+  private Boolean amAllowNoneGpuJobOnGpuNode = true;
 
   // ApplicationMaster Setup
   private Integer amVersion = 0;
@@ -270,23 +255,7 @@ public class LauncherConfiguration implements Serializable {
     this.amSearchNodeBufferFactor = amSearchNodeBufferFactor;
   }
 
-  public Boolean getAmEnableNodeLabelFilter() {
-    return amEnableNodeLabelFilter;
-  }
-
-  public void setAmEnableNodeLabelFilter(Boolean amEnableNodeLabelFilter) {
-    this.amEnableNodeLabelFilter = amEnableNodeLabelFilter;
-  }
-
-  public Boolean getAmEnableGpuTypeFilter() {
-    return amEnableGpuTypeFilter;
-  }
-
-  public void setAmEnableGpuTypeFilter(Boolean amEnableGpuTypeFilter) {
-    this.amEnableGpuTypeFilter = amEnableGpuTypeFilter;
-  }
-
-  public Boolean getAmSkipLocalTriedResource() {
+    public Boolean getAmSkipLocalTriedResource() {
     return amSkipLocalTriedResource;
   }
 
@@ -294,36 +263,20 @@ public class LauncherConfiguration implements Serializable {
     this.amSkipLocalTriedResource = amSkipLocalTriedResource;
   }
 
-  public Boolean getAmAllTaskWithTheSamePorts() {
-    return amAllTaskWithTheSamePorts;
+  public Boolean getAmTaskRoleSharedTheSamePorts() {
+    return amTaskRoleSharedTheSamePorts;
   }
 
-  public void setAmAllTaskWithTheSamePorts(Boolean amAllTaskWithTheSamePorts) {
-    this.amAllTaskWithTheSamePorts = amAllTaskWithTheSamePorts;
+  public void setAmTaskRoleSharedTheSamePorts(Boolean amTaskRoleSharedTheSamePorts) {
+    this.amTaskRoleSharedTheSamePorts = amTaskRoleSharedTheSamePorts;
   }
 
-  public Boolean getAmAllowNonGpuTaskOnGpuNode() {
-    return amAllowNonGpuTaskOnGpuNode;
+  public Boolean getAmAllowNoneGpuJobOnGpuNode() {
+    return amAllowNoneGpuJobOnGpuNode;
   }
 
-  public void setAmAllowNonGpuTaskOnGpuNode(Boolean amAllowNonGpuTaskOnGpuNode) {
-    this.amAllowNonGpuTaskOnGpuNode = amAllowNonGpuTaskOnGpuNode;
-  }
-
-  public String getAmNodeGroupSelectionPolicy() {
-    return this.amNodeGroupSelectionPolicy;
-  }
-
-  public void setAmNodeGroupSelectionPolicy(String amNodeGroupSelectionPolicy) {
-    this.amNodeGroupSelectionPolicy = amNodeGroupSelectionPolicy;
-  }
-
-  public String getAmNodeSelectionPolicy() {
-    return this.amNodeSelectionPolicy;
-  }
-
-  public void setAmNodeSelectionPolicy(String amNodeSelectionPolicy) {
-    this.amNodeSelectionPolicy = amNodeSelectionPolicy;
+  public void setAmAllowNoneGpuJobOnGpuNode(Boolean amAllowNoneGpuJobOnGpuNode) {
+    this.amAllowNoneGpuJobOnGpuNode = amAllowNoneGpuJobOnGpuNode;
   }
 
   public Integer getAmVersion() {

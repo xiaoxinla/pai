@@ -32,6 +32,7 @@ import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
 import com.microsoft.frameworklauncher.common.model.*;
+import sun.misc.Request;
 
 import java.util.*;
 
@@ -74,7 +75,7 @@ public class SelectionManager { // THREAD SAFE
     }
   }
 
-  private void filterNodesByLabel(String requestNodeLabel) {
+  private void filterNodesByNodeLabel(String requestNodeLabel) {
     if (requestNodeLabel != null) {
       for (int i = filteredNodes.size(); i > 0; i--) {
         Set<String> availableNodeLabels = allNodes.get(filteredNodes.get(i - 1)).getLabels();
@@ -142,54 +143,17 @@ public class SelectionManager { // THREAD SAFE
     }
   }
 
-  private void filterNodesByGroupSelectionPolicy(ResourceDescriptor requestResource, int pendingTaskNumber) {
-  //TODO: Node GPU policy filter the nodes;
+  private void filterNodesByRackSelectionPolicy(ResourceDescriptor requestResource, int pendingTaskNumber) {
+    //TODO: Node GPU policy filter the nodes;
   }
 
   private SelectionResult SelectNodes(ResourceDescriptor requestResource, int pendingTaskNumber) {
-
-    String nodeSelectionPolicy = am.getConfiguration().getLauncherConfig().getAmNodeSelectionPolicy();
-
-    if(nodeSelectionPolicy.equals(SelectionPolicy.PACKING.toString())) {
-      return selectNodesByPacking(requestResource, pendingTaskNumber);
-    } else if(nodeSelectionPolicy.equals(SelectionPolicy.COHOST.toString())) {
-      SelectionResult result = selectNodesByCoHost(requestResource, pendingTaskNumber);
-      if(result.getSelectedNodeHosts().size() > 0) {
-        return result;
-      }
-    } else if(nodeSelectionPolicy.equals(SelectionPolicy.TOPOLOGY.toString())) {
-      //TODO: schedule task to node which has best gpu locality
-    }
-    // Use packing as default node selection strategy.
-    return selectNodesByPacking(requestResource, pendingTaskNumber);
+    //TODO: apply other node selection policy in  the futher;
+    return selectNodesByJobPacking(requestResource, pendingTaskNumber);
   }
 
   //Default Node Selection strategy.
-  private SelectionResult selectNodesByCoHost(ResourceDescriptor requestResource, int pendingTaskNumber) {
-
-    int requestNumber = pendingTaskNumber * am.getConfiguration().getLauncherConfig().getAmSearchNodeBufferFactor();
-    List<String> allocatedHosts = am.getStatusManager().getApplicationAllocatedHosts();
-    List<Node> candidateNodes = new ArrayList<Node>();
-    SelectionResult result = new SelectionResult();
-    for (String nodeName : filteredNodes) {
-      if(allocatedHosts.contains(nodeName)) {
-        candidateNodes.add(allNodes.get(nodeName));
-      }
-    }
-    Collections.sort(candidateNodes);
-    for (int i = 0; i < requestNumber && i < candidateNodes.size(); i++) {
-      Node select = candidateNodes.get(i);
-      Long gpuAttribute = requestResource.getGpuAttribute();
-      if (gpuAttribute == 0) {
-        gpuAttribute = selectCandidateGpuAttribute(select, requestResource.getGpuNumber());
-      }
-      result.addSelection(select.getHost(), gpuAttribute, select.getAvailableResource().getPortRanges());
-    }
-    return result;
-  }
-
-  //Default Node Selection strategy.
-  private SelectionResult selectNodesByPacking(ResourceDescriptor requestResource, int pendingTaskNumber) {
+  private SelectionResult selectNodesByJobPacking(ResourceDescriptor requestResource, int pendingTaskNumber) {
 
     int requestNumber = pendingTaskNumber * am.getConfiguration().getLauncherConfig().getAmSearchNodeBufferFactor();
     List<Node> candidateNodes = new ArrayList<Node>();
@@ -207,6 +171,90 @@ public class SelectionManager { // THREAD SAFE
       result.addSelection(select.getHost(), gpuAttribute, select.getAvailableResource().getPortRanges());
     }
     return result;
+  }
+
+  public synchronized SelectionResult select(ResourceDescriptor requestResource, String taskRoleName) throws NotAvailableException {
+    String requestNodeLabel = am.getRequestManager().getTaskPlatParams().get(taskRoleName).getTaskNodeLabel();
+    String requestNodeGpuType = am.getRequestManager().getTaskPlatParams().get(taskRoleName).getTaskNodeGpuType();
+    int pendingTaskNumber = am.getStatusManager().getUnAllocatedTaskCount(taskRoleName);
+    List<Range> allocatedPort = am.getStatusManager().getAllocatedTaskPorts(taskRoleName);
+    return select(requestResource, requestNodeLabel, requestNodeGpuType, pendingTaskNumber, allocatedPort);
+  }
+
+  @VisibleForTesting
+  public synchronized SelectionResult select(ResourceDescriptor requestResource, String requestNodeLabel, String requestNodeGpuType, int pendingTaskNumber) throws NotAvailableException {
+    return select(requestResource, requestNodeLabel, requestNodeGpuType, pendingTaskNumber, null);
+  }
+
+  public synchronized SelectionResult select(ResourceDescriptor requestResource, String requestNodeLabel, String requestNodeGpuType, int pendingTaskNumber, List<Range> allocatedPort) throws NotAvailableException {
+
+    LOGGER.logInfo(
+        "select: Request: Resource: [%s], NodeLabel: [%s], NodeGpuType: [%s], TaskNumber: [%d]",
+        requestResource, requestNodeLabel, requestNodeGpuType, pendingTaskNumber);
+
+    randomizeNodes();
+    filterNodesByNodeLabel(requestNodeLabel);
+    filterNodesByGpuType(requestNodeGpuType);
+    filterNodesForNonGpuTask(requestResource);
+
+
+    ResourceDescriptor optimizedRequestResource = YamlUtils.deepCopy(requestResource, ResourceDescriptor.class);
+    if (am.getConfiguration().getLauncherConfig().getAmTaskRoleSharedTheSamePorts()) {
+      if (RangeUtils.getValueNumber(allocatedPort) > 0) {
+        optimizedRequestResource.setPortRanges(allocatedPort);
+      }
+    }
+
+    filterNodesByResource(optimizedRequestResource, am.getConfiguration().getLauncherConfig().getAmSkipLocalTriedResource());
+
+    filterNodesByRackSelectionPolicy(optimizedRequestResource, pendingTaskNumber);
+    if (filteredNodes.size() < pendingTaskNumber) {
+      //don't have candidate nodes for this request.
+      if (requestNodeGpuType != null || requestResource.getPortNumber() > 0) {
+        //If gpuType or portNumber is specified, abort this request and try later.
+        throw new NotAvailableException(String.format("Don't have enough nodes to fix in optimizedRequestResource:%s, NodeGpuType: [%s]",
+            optimizedRequestResource, requestNodeGpuType));
+      }
+    }
+    SelectionResult selectionResult = SelectNodes(optimizedRequestResource, pendingTaskNumber);
+    List<Range> portRanges = allocatePorts(selectionResult, optimizedRequestResource);
+    optimizedRequestResource.setPortRanges(portRanges);
+    selectionResult.setOptimizedResource(optimizedRequestResource);
+    return selectionResult;
+  }
+
+  // If the port was not allocated or specified previously, need allocate the port for this request.
+  public List<Range> allocatePorts(SelectionResult selectionResult, ResourceDescriptor optimizedRequestResource) throws NotAvailableException {
+    if (RangeUtils.getValueNumber(optimizedRequestResource.getPortRanges()) <= 0 && optimizedRequestResource.getPortNumber() > 0) {
+      List<Range> newCandidatePorts = RangeUtils.getSubRange(selectionResult.getOverlapPorts(), optimizedRequestResource.getPortNumber(),
+          am.getConfiguration().getLauncherConfig().getAmContainerBasePort());
+
+      if (RangeUtils.getValueNumber(newCandidatePorts) >= optimizedRequestResource.getPortNumber()) {
+        LOGGER.logDebug("Allocated port: optimizedRequestResource: [%s]", optimizedRequestResource);
+        return newCandidatePorts;
+      } else {
+        throw new NotAvailableException("The selected candidate nodes don't have enough ports");
+      }
+    }
+    return optimizedRequestResource.getPortRanges();
+  }
+
+  @VisibleForTesting
+  public synchronized Long selectCandidateGpuAttribute(Node node, Integer requestGpuNumber) {
+    ResourceDescriptor nodeAvailable = node.getAvailableResource();
+    assert (requestGpuNumber <= nodeAvailable.getGpuNumber());
+
+    Long selectedGpuAttribute = 0L;
+    Long availableGpuAttribute = nodeAvailable.getGpuAttribute();
+
+    // By default, using the simple sequential selection.
+    // To improve it, considers the Gpu topology structure, find a node which can minimize
+    // the communication cost among Gpus;
+    for (int i = 0; i < requestGpuNumber; i++) {
+      selectedGpuAttribute += (availableGpuAttribute - (availableGpuAttribute & (availableGpuAttribute - 1)));
+      availableGpuAttribute &= (availableGpuAttribute - 1);
+    }
+    return selectedGpuAttribute;
   }
 
 
@@ -274,92 +322,5 @@ public class SelectionManager { // THREAD SAFE
         LOGGER.logWarning("removeContainerRequest: Node is no longer a candidate: %s", nodeHost);
       }
     }
-  }
-
-  @VisibleForTesting
-  public synchronized SelectionResult select(ResourceDescriptor requestResource, String taskRoleName) throws NotAvailableException {
-    String requestNodeLabel = am.getRequestManager().getTaskPlatParams().get(taskRoleName).getTaskNodeLabel();
-    String requestNodeGpuType = am.getRequestManager().getTaskPlatParams().get(taskRoleName).getTaskNodeGpuType();
-    int pendingTaskNumber = am.getStatusManager().getUnAllocatedTaskCount(taskRoleName);
-    List<Range> allocatedPort =am.getStatusManager().getAllocatedTaskPorts(taskRoleName);
-    return select(requestResource, requestNodeLabel, requestNodeGpuType, pendingTaskNumber, allocatedPort);
-  }
-
-  @VisibleForTesting
-  public synchronized SelectionResult select(ResourceDescriptor requestResource,  String requestNodeLabel, String requestNodeGpuType, int pendingTaskNumber) throws NotAvailableException {
-    return select(requestResource, requestNodeLabel, requestNodeGpuType, pendingTaskNumber, null);
-  }
-
-  public synchronized SelectionResult select(ResourceDescriptor requestResource,  String requestNodeLabel, String requestNodeGpuType, int pendingTaskNumber, List<Range> allocatedPort) throws NotAvailableException {
-
-    LOGGER.logInfo(
-        "select: Request: Resource: [%s], NodeLabel: [%s], NodeGpuType: [%s], TaskNumber: [%d]",
-        requestResource, requestNodeLabel, requestNodeGpuType, pendingTaskNumber);
-
-    randomizeNodes();
-    if (am.getConfiguration().getLauncherConfig().getAmEnableNodeLabelFilter()) {
-      filterNodesByLabel(requestNodeLabel);
-    }
-    if (am.getConfiguration().getLauncherConfig().getAmEnableGpuTypeFilter()) {
-      filterNodesByGpuType(requestNodeGpuType);
-    }
-
-    if (!am.getConfiguration().getLauncherConfig().getAmAllowNonGpuTaskOnGpuNode()) {
-      filterNodesForNonGpuTask(requestResource);
-    }
-
-    ResourceDescriptor optimizedRequestResource = YamlUtils.deepCopy(requestResource, ResourceDescriptor.class);
-    if (am.getConfiguration().getLauncherConfig().getAmAllTaskWithTheSamePorts()) {
-      if (RangeUtils.getValueNumber(allocatedPort) > 0) {
-        optimizedRequestResource.setPortRanges(allocatedPort);
-      }
-    }
-
-    filterNodesByResource(optimizedRequestResource, am.getConfiguration().getLauncherConfig().getAmSkipLocalTriedResource());
-
-    filterNodesByGroupSelectionPolicy(optimizedRequestResource, pendingTaskNumber);
-    if (filteredNodes.size() < pendingTaskNumber) {
-      //don't have candidate nodes for this request.
-      if (requestNodeGpuType != null || requestResource.getPortNumber() > 0) {
-        //If gpuType or portNumber is specified, abort this request and try later.
-        throw new NotAvailableException(String.format("Don't have enough nodes to fix in optimizedRequestResource:%s, NodeGpuType: [%s]",
-            optimizedRequestResource, requestNodeGpuType));
-      }
-    }
-
-    SelectionResult selectionResult = SelectNodes(optimizedRequestResource, pendingTaskNumber);
-
-    // after find a set of candidates, if the port was not allocated or specified previously, need allocate the port for this request.
-    if (RangeUtils.getValueNumber(optimizedRequestResource.getPortRanges()) <= 0 && optimizedRequestResource.getPortNumber() > 0) {
-      List<Range> newCandidatePorts = RangeUtils.getSubRange(selectionResult.getOverlapPorts(), optimizedRequestResource.getPortNumber(),
-          am.getConfiguration().getLauncherConfig().getAmContainerBasePort());
-
-      if (RangeUtils.getValueNumber(newCandidatePorts) >= optimizedRequestResource.getPortNumber()) {
-        optimizedRequestResource.setPortRanges(newCandidatePorts);
-        LOGGER.logDebug("Allocated port: optimizedRequestResource: [%s]", optimizedRequestResource);
-      } else {
-        throw new NotAvailableException("The selected candidate nodes don't have enough ports");
-      }
-    }
-    selectionResult.setOptimizedResource(optimizedRequestResource);
-    return selectionResult;
-  }
-
-  @VisibleForTesting
-  public synchronized Long selectCandidateGpuAttribute(Node node, Integer requestGpuNumber) {
-    ResourceDescriptor nodeAvailable = node.getAvailableResource();
-    assert (requestGpuNumber <= nodeAvailable.getGpuNumber());
-
-    Long selectedGpuAttribute = 0L;
-    Long availableGpuAttribute = nodeAvailable.getGpuAttribute();
-
-    // By default, using the simple sequential selection.
-    // To improve it, considers the Gpu topology structure, find a node which can minimize
-    // the communication cost among Gpus;
-    for (int i = 0; i < requestGpuNumber; i++) {
-      selectedGpuAttribute += (availableGpuAttribute - (availableGpuAttribute & (availableGpuAttribute - 1)));
-      availableGpuAttribute &= (availableGpuAttribute - 1);
-    }
-    return selectedGpuAttribute;
   }
 }
