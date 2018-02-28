@@ -16,6 +16,12 @@
       "cpuNumber": 8,
       "memoryMB": 16384,
       "gpuNumber": 1,
+      "portDefinitions": {
+        "httpPort": {
+          "start": 0,
+          "count": 1
+        }
+      },
       "command": "cd code && /bin/bash cntk-example.sh"
     }
   ]

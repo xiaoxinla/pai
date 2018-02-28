@@ -18,13 +18,13 @@
 package com.microsoft.frameworklauncher.applicationmaster;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.microsoft.frameworklauncher.common.model.ResourceDescriptor;
 import com.microsoft.frameworklauncher.common.exts.CommonExts;
+import com.microsoft.frameworklauncher.common.model.ResourceDescriptor;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 
 import java.util.Set;
 
-public class Node {
+public class Node implements Comparable<Node> {
   private final String host;
   private Set<String> labels;
   private ResourceDescriptor totalResource;
@@ -38,6 +38,28 @@ public class Node {
     this.totalResource = totalResource;
     this.usedResource = usedResource;
     this.requestedResource = ResourceDescriptor.newInstance(0, 0, 0, 0L);
+  }
+
+  //Compare by two node's AvailableResource,  Ignore the gpuAttribute and Ports because they are not countable resource.
+  public int compareTo(Node arg0) {
+    if (this.getAvailableResource().getGpuNumber() > arg0.getAvailableResource().getGpuNumber())
+      return 1;
+    if (this.getAvailableResource().getGpuNumber() < arg0.getAvailableResource().getGpuNumber()) {
+      return -1;
+    }
+    if (this.getAvailableResource().getCpuNumber() > arg0.getAvailableResource().getCpuNumber()) {
+      return 1;
+    }
+    if (this.getAvailableResource().getCpuNumber() < arg0.getAvailableResource().getCpuNumber()) {
+      return -1;
+    }
+    if (this.getAvailableResource().getMemoryMB() > arg0.getAvailableResource().getMemoryMB()) {
+      return 1;
+    }
+    if (this.getAvailableResource().getMemoryMB() < arg0.getAvailableResource().getMemoryMB()) {
+      return -1;
+    }
+    return 0;
   }
 
   public static Node fromNodeReport(NodeReport nodeReport) throws Exception {

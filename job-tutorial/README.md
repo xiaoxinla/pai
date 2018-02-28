@@ -79,7 +79,13 @@ A json file describe detailed configuration required for a job submission. The d
       "cpuNumber":  Integer,
       "memoryMB":   Integer,
       "gpuNumber":  Integer,
-      "command":    String
+      "command":    String,
+      "portDefinitions": {
+        "label": {
+          "start": Integer,
+          "count": Integer
+        }
+      }
     }
   ],
   "gpuType": String,
@@ -105,11 +111,15 @@ Below please find the detailed explanation for each of the parameters in the con
 | `taskRole.memoryMB`            | Integer, required          | Memory for one task in the task role, no less than 100 |
 | `taskRole.gpuNumber`           | Integer, required          | GPU number for one task in the task role, no less than 0 |
 | `taskRole.command`             | String, required           | Executable command for tasks in the task role, can not be empty |
+| `taskRole.portDefinitions`     | Map, required              | A Map of port definition for one task in task role, one port definition at least |
+| `taskRole.portDefinitions.label`    | String, required      | The label of the port, use to describe the usage of the port, this label will be set as environment variable |
+| `taskRole.portDefinitions.label.start`     | Integer, required              | The start port, value 0 means any port |
+| `taskRole.portDefinitions.label.count`     | Integer, required              | The port count for this label |
 | `gpuType`                      | String, optional           | Specify the GPU type to be used in the tasks. If omitted, the job will run on any gpu type |
 | `killAllOnCompletedTaskNumber` | Integer, optional          | Number of completed tasks to kill the entire job, no less than 0 |
 | `retryCount`                   | Integer, optional          | Job retry count, no less than 0          |
 
-If you're using a private Docker registry which needs authentication for image pull and is different from the registry used during deployment,
+If you're using a private  Docker registry which needs authentication for image pull and is different from the registry used during deployment,
 please create an authentication file in the following format, upload it to HDFS and specify the path in `authFile` parameter in config file.
 
 ```
@@ -188,6 +198,13 @@ A distributed TensorFlow job is listed below as an example:
       "cpuNumber": 2,
       "memoryMB": 16384,
       "gpuNumber": 4,
+      // below will try to allocate port 8080 and 8081, and they will be set into environment variable httpPort in worker container
+      "portDefinitions": {
+                  "httpPort": {
+                    "start": 8080,
+                    "count": 2
+                  }
+                },
       "command": "pip --quiet install scipy && python code/tf_cnn_benchmarks.py --local_parameter_device=cpu --num_gpus=4 --batch_size=32 --model=resnet20 --variable_update=parameter_server --data_dir=$PAI_DATA_DIR --data_name=cifar10 --train_dir=$PAI_OUTPUT_DIR --ps_hosts=$PAI_TASK_ROLE_0_HOST_LIST --worker_hosts=$PAI_TASK_ROLE_1_HOST_LIST --job_name=worker --task_index=$PAI_TASK_ROLE_INDEX"
     }
   ],

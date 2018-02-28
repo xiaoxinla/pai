@@ -23,8 +23,9 @@ import java.net.PortUnreachableException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
+import java.util.Random;
 
-public class ValueRangeUtils {
+public class RangeUtils {
 
   /*
     sort the list range from small to big.
@@ -44,15 +45,15 @@ public class ValueRangeUtils {
     }
 
     List<Range> newRangeList = coalesceRangeList(rangeList);
-    int portCount = 0;
+    int valueCount = 0;
     for (Range range : newRangeList) {
-      portCount += (range.getEnd() - range.getBegin() + 1);
+      valueCount += (range.getEnd() - range.getBegin() + 1);
     }
-    return portCount;
+    return valueCount;
   }
 
   /*
-    coalesce the duplicate or overlap range in the rangelist.
+    coalesce the duplicate or overlap range in the range list.
    */
   public static List<Range> coalesceRangeList(List<Range> rangeList) {
     if (rangeList == null || rangeList.isEmpty()) {
@@ -235,28 +236,64 @@ public class ValueRangeUtils {
   }
 
   /*
-
+    get a Random subRange list from the available range list, all the value in the subRange is bigger than baseValue.
+    and the value count in the subRange is requestNumber
    */
   public static List<Range> getSubRange(List<Range> availableRange, int requestNumber, int baseValue) {
 
     List<Range> resultList = new ArrayList<Range>();
-    int needNumber = requestNumber;
-    int start = baseValue;
-    for (Range range : availableRange) {
+    Random random = new Random();
+    //Pick a random number from 0 to the max value;
+    int maxValue = availableRange.get(availableRange.size() - 1).getEnd();
+    int randomBase = random.nextInt(maxValue) + 1;
 
-      if (range.getEnd() < baseValue) {
-        continue;
-      }
-      start = Math.max(range.getBegin(), baseValue);
-      if ((range.getEnd() - start + 1) >= needNumber) {
-        resultList.add(Range.newInstance(start, start + needNumber - 1));
-        return resultList;
-      } else {
-        resultList.add(Range.newInstance(start, range.getEnd()));
-        needNumber -= (range.getEnd() - start + 1);
+    // try different randomBase to find enough request number. If still cannot find enough request
+    // number when randomBase reduce to 0, return null.
+    while (randomBase > 0) {
+      resultList.clear();
+      int needNumber = requestNumber;
+      randomBase = randomBase / 2;
+      int newbaseValue = baseValue + randomBase;
+      for (Range range : availableRange) {
+        if (range.getEnd() < newbaseValue) {
+          continue;
+        }
+        int start = Math.max(range.getBegin(), newbaseValue);
+        if ((range.getEnd() - start + 1) >= needNumber) {
+          resultList.add(Range.newInstance(start, start + needNumber - 1));
+          return resultList;
+        } else {
+          resultList.add(Range.newInstance(start, range.getEnd()));
+          needNumber -= (range.getEnd() - start + 1);
+        }
       }
     }
     return null;
+  }
+
+  public static boolean isEqualRangeList(List<Range> leftRangeList, List<Range> rightRangeList) {
+    List<Range> leftRange = coalesceRangeList(leftRangeList);
+    List<Range> rightRange = coalesceRangeList(rightRangeList);
+
+    if(leftRange == null || rightRange == null) {
+      if(leftRange == rightRange) {
+        return true;
+      }else {
+        return false;
+      }
+    }
+    if(leftRange.size() != rightRange.size()) {
+      return false;
+    }
+    for(int i = 0; i < leftRange.size(); i++) {
+      if(leftRange.get(i).getBegin() != rightRange.get(i).getBegin()) {
+        return false;
+      }
+      if(leftRange.get(i).getEnd() != rightRange.get(i).getEnd()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public static List<Range> cloneList(List<Range> list) {
@@ -268,22 +305,21 @@ public class ValueRangeUtils {
   }
 
   /*
-    Convert the range list to a ";" joint string. example: [7-10] -> 7;8;9;10
+    get the value at "index" location in the Range list
    */
-  public static String convertRangeToString(List<Range> list) {
-    if(list == null) {
-      return "";
+  public static Integer getValue(List<Range> list, int index) {
+    if (list == null) {
+      return -1;
     }
     List<Range> ranges = coalesceRangeList(list);
-    StringBuilder sb = new StringBuilder();
+    int i = index;
     for (Range range : ranges) {
-      for(Integer i = range.getBegin(); i <= range.getEnd(); i++) {
-        if(sb.length() > 0) {
-          sb.append(";");
-        }
-        sb.append(i.toString());
+      if (range.getEnd() - range.getBegin() < i) {
+        i -= (range.getEnd() - range.getBegin() + 1);
+      } else {
+        return (range.getBegin() + i);
       }
     }
-    return sb.toString();
+    return -1;
   }
 }

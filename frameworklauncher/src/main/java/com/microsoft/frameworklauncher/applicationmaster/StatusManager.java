@@ -27,7 +27,6 @@ import com.microsoft.frameworklauncher.common.service.AbstractService;
 import com.microsoft.frameworklauncher.common.service.StopStatus;
 import com.microsoft.frameworklauncher.common.utils.DnsUtils;
 import com.microsoft.frameworklauncher.common.utils.HadoopUtils;
-import com.microsoft.frameworklauncher.common.utils.ValueRangeUtils;
 import com.microsoft.frameworklauncher.common.utils.YamlUtils;
 import com.microsoft.frameworklauncher.common.web.WebCommon;
 import com.microsoft.frameworklauncher.zookeeperstore.ZookeeperStore;
@@ -307,8 +306,7 @@ public class StatusManager extends AbstractService {  // THREAD SAFE
     taskStatus.setContainerConnectionLostCount(0);
     taskStatus.setContainerGpus(
         ResourceDescriptor.fromResource(container.getResource()).getGpuAttribute());
-    String containerPorts = ValueRangeUtils.convertRangeToString(ResourceDescriptor.fromResource(container.getResource()).getPortRanges());
-    taskStatus.setContainerPorts(containerPorts);
+    taskStatus.setContainerPorts(ResourceDescriptor.fromResource(container.getResource()).getPortRanges());
 
     taskStatusesesChanged.put(locator.getTaskRoleName(), true);
   }
@@ -497,8 +495,54 @@ public class StatusManager extends AbstractService {  // THREAD SAFE
   /**
    * REGION ReadInterface
    */
-  public synchronized List<Range> getTaskRolePortRanges(String taskRoleName) {
-    return taskRoleStatuses.get(taskRoleName).getPortRanges();
+
+  public Integer getUnAllocatedTaskCount(String taskRoleName) {
+    int unAllocatedTastCount = 0;
+    List<TaskStatus> taskStatusList = taskStatuseses.get(taskRoleName).getTaskStatusArray();
+    for(TaskStatus taskstatus : taskStatusList) {
+      if(taskstatus.getTaskState() == TaskState.TASK_WAITING || taskstatus.getTaskState() == TaskState.CONTAINER_REQUESTED) {
+        unAllocatedTastCount++;
+      }
+    }
+    return unAllocatedTastCount;
+  }
+
+  public synchronized List<Range> getAllocatedTaskPorts(String taskRoleName) {
+    List<TaskStatus> taskStatusList = taskStatuseses.get(taskRoleName).getTaskStatusArray();
+    for (TaskStatus taskstatus : taskStatusList) {
+      if (taskstatus.getTaskState() == TaskState.CONTAINER_ALLOCATED ||
+          taskstatus.getTaskState() == TaskState.CONTAINER_LAUNCHED ||
+          taskstatus.getTaskState() == TaskState.CONTAINER_RUNNING) {
+        return taskstatus.getContainerPorts();
+      }
+    }
+    return null;
+  }
+
+  public synchronized List<String> getTaskRoleAllocatedHosts(String taskRoleName) {
+    List<TaskStatus> taskStatusList = taskStatuseses.get(taskRoleName).getTaskStatusArray();
+    List<String> allocatedHosts = new ArrayList<>();
+    for (TaskStatus taskstatus : taskStatusList) {
+      if (taskstatus.getTaskState() == TaskState.CONTAINER_ALLOCATED ||
+          taskstatus.getTaskState() == TaskState.CONTAINER_LAUNCHED ||
+          taskstatus.getTaskState() == TaskState.CONTAINER_RUNNING) {
+        allocatedHosts.add(taskstatus.getContainerHost());
+      }
+    }
+    return allocatedHosts;
+  }
+
+  public synchronized List<String> getApplicationAllocatedHosts() {
+    List<String> allocatedHosts = new ArrayList<>();
+    for(TaskStatuses taskStatuses: taskStatuseses.values())
+    for (TaskStatus taskstatus : taskStatuses.getTaskStatusArray()) {
+      if (taskstatus.getTaskState() == TaskState.CONTAINER_ALLOCATED ||
+          taskstatus.getTaskState() == TaskState.CONTAINER_LAUNCHED ||
+          taskstatus.getTaskState() == TaskState.CONTAINER_RUNNING) {
+        allocatedHosts.add(taskstatus.getContainerHost());
+      }
+    }
+    return allocatedHosts;
   }
 
   // Returned TaskStatus is readonly, caller should not modify it

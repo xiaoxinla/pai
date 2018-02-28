@@ -17,6 +17,8 @@
 
 package com.microsoft.frameworklauncher.common.model;
 
+import com.sun.el.parser.BooleanNode;
+
 import javax.validation.constraints.Pattern;
 import java.io.Serializable;
 
@@ -55,7 +57,28 @@ public class LauncherConfiguration implements Serializable {
   // is also limited to 100MB = 500K * 200 bytes/task.
   private Integer maxTotalTaskNumber = 500000;
 
-  private Integer amDefaultContainerBasePort = 2000;
+  private Integer amContainerBasePort = 2000;
+  private Integer amSearchNodeBufferFactor = 2;
+
+  private Boolean amEnableNodeLabelFilter = true;
+  private Boolean amEnableGpuTypeFilter = true;
+  private Boolean amSkipLocalTriedResource = false;
+  private Boolean amAllTaskWithTheSamePorts = false;
+  private Boolean amAllowNonGpuTaskOnGpuNode = true;
+
+  //The NodeGroupSelection policy are:
+  // CoHost: All tasks run in the same node.
+  // Packing: All tasks run in the node which can be fit in and has least resource available.
+  // None: ignore the node group, think all nodes are in the same big group.
+  private String amNodeGroupSelectionPolicy = SelectionPolicy.NONE.toString();
+
+  //The NodeSelection policy are:
+  // CoHost: All tasks run in the same node group which is random selected.
+  // Packing: All tasks run in the node group which can fit all task in and has least resource available.
+  // TopologyAwareness: choose the node has best Gpu topology arrangement.
+  // None: Random pick a node.
+  private String amNodeSelectionPolicy = SelectionPolicy.NONE.toString();
+
   // ApplicationMaster Setup
   private Integer amVersion = 0;
   //AM Default Resource which can support max to 10000 total Tasks in one Framework
@@ -211,9 +234,77 @@ public class LauncherConfiguration implements Serializable {
     this.maxTotalTaskNumber = maxTotalTaskNumber;
   }
 
-  public Integer getAmDefaultContainerBasePort() { return amDefaultContainerBasePort;}
+  public Integer getAmContainerBasePort() {
+    return amContainerBasePort;
+  }
 
-  public void setAmDefaultContainerBasePort(Integer amDefaultContainerBasePort) {this.amDefaultContainerBasePort = amDefaultContainerBasePort;}
+  public void setAmContainerBasePort(Integer amContainerBasePort) {
+    this.amContainerBasePort = amContainerBasePort;
+  }
+
+  public Integer getAmSearchNodeBufferFactor() {
+    return amSearchNodeBufferFactor;
+  }
+
+  public void setAmSearchNodeBufferFactor(Integer amSearchNodeBufferFactor) {
+    this.amSearchNodeBufferFactor = amSearchNodeBufferFactor;
+  }
+
+  public Boolean getAmEnableNodeLabelFilter() {
+    return amEnableNodeLabelFilter;
+  }
+
+  public void setAmEnableNodeLabelFilter(Boolean amEnableNodeLabelFilter) {
+    this.amEnableNodeLabelFilter = amEnableNodeLabelFilter;
+  }
+
+  public Boolean getAmEnableGpuTypeFilter() {
+    return amEnableGpuTypeFilter;
+  }
+
+  public void setAmEnableGpuTypeFilter(Boolean amEnableGpuTypeFilter) {
+    this.amEnableGpuTypeFilter = amEnableGpuTypeFilter;
+  }
+
+  public Boolean getAmSkipLocalTriedResource() {
+    return amSkipLocalTriedResource;
+  }
+
+  public void setAmSkipLocalTriedResource(Boolean amSkipLocalTriedResource) {
+    this.amSkipLocalTriedResource = amSkipLocalTriedResource;
+  }
+
+  public Boolean getAmAllTaskWithTheSamePorts() {
+    return amAllTaskWithTheSamePorts;
+  }
+
+  public void setAmAllTaskWithTheSamePorts(Boolean amAllTaskWithTheSamePorts) {
+    this.amAllTaskWithTheSamePorts = amAllTaskWithTheSamePorts;
+  }
+
+  public Boolean getAmAllowNonGpuTaskOnGpuNode() {
+    return amAllowNonGpuTaskOnGpuNode;
+  }
+
+  public void setAmAllowNonGpuTaskOnGpuNode(Boolean amAllowNonGpuTaskOnGpuNode) {
+    this.amAllowNonGpuTaskOnGpuNode = amAllowNonGpuTaskOnGpuNode;
+  }
+
+  public String getAmNodeGroupSelectionPolicy() {
+    return this.amNodeGroupSelectionPolicy;
+  }
+
+  public void setAmNodeGroupSelectionPolicy(String amNodeGroupSelectionPolicy) {
+    this.amNodeGroupSelectionPolicy = amNodeGroupSelectionPolicy;
+  }
+
+  public String getAmNodeSelectionPolicy() {
+    return this.amNodeSelectionPolicy;
+  }
+
+  public void setAmNodeSelectionPolicy(String amNodeSelectionPolicy) {
+    this.amNodeSelectionPolicy = amNodeSelectionPolicy;
+  }
 
   public Integer getAmVersion() {
     return amVersion;
@@ -318,7 +409,7 @@ public class LauncherConfiguration implements Serializable {
   public void setAmSetupContainerRequestMaxRetryIntervalSec(Integer amSetupContainerRequestMaxRetryIntervalSec) {
     this.amSetupContainerRequestMaxRetryIntervalSec = amSetupContainerRequestMaxRetryIntervalSec;
   }
-  
+
   public String getWebServerBindHost() {
     return webServerBindHost;
   }

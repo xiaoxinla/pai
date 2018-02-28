@@ -18,6 +18,7 @@
 package com.microsoft.frameworklauncher.common.model;
 
 import java.io.Serializable;
+import java.util.List;
 
 public class TaskStatus implements Serializable {
   // Task static status
@@ -41,7 +42,7 @@ public class TaskStatus implements Serializable {
   // containerIp is the assigned ipv4 address of the corresponding containerHost
   private String containerIp;
   // containerGpus is the assigned GpuAttribute of the container
-  private String containerPorts;
+  private List<Range> containerPorts;
   private Long containerGpus;
   private String containerLogHttpAddress;
   private Integer containerConnectionLostCount;
@@ -132,11 +133,11 @@ public class TaskStatus implements Serializable {
     this.containerIp = containerIp;
   }
 
-  public String getContainerPorts() {
+  public List<Range> getContainerPorts() {
     return containerPorts;
   }
 
-  public void setContainerPorts(String ports) {
+  public void setContainerPorts(List<Range> ports) {
     containerPorts = ports;
   }
 

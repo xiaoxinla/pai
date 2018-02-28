@@ -18,6 +18,7 @@
 package com.microsoft.frameworklauncher.applicationmaster;
 
 import com.microsoft.frameworklauncher.common.GlobalConstants;
+import com.microsoft.frameworklauncher.common.model.LauncherConfiguration;
 import com.microsoft.frameworklauncher.common.model.ResourceDescriptor;
 import com.microsoft.frameworklauncher.common.utils.CommonUtils;
 
@@ -25,12 +26,14 @@ public class MockConfiguration extends Configuration {
   private String frameworkName;
   private Integer frameworkVersion;
   private Integer amVersion;
+  private LauncherConfiguration launcherConfig;
 
   @Override
   public void initializeNoDependenceConfig() throws Exception {
-    frameworkName = CommonUtils.getEnvironmentVariable(GlobalConstants.ENV_VAR_FRAMEWORK_NAME);
-    frameworkVersion = Integer.parseInt(CommonUtils.getEnvironmentVariable(GlobalConstants.ENV_VAR_FRAMEWORK_VERSION));
-    amVersion = Integer.parseInt(CommonUtils.getEnvironmentVariable(GlobalConstants.ENV_VAR_AM_VERSION));
+    frameworkName = CommonUtils.getEnvironmentVariable(GlobalConstants.ENV_VAR_FRAMEWORK_NAME, "NAME");
+    frameworkVersion = Integer.parseInt(CommonUtils.getEnvironmentVariable(GlobalConstants.ENV_VAR_FRAMEWORK_VERSION, "0"));
+    amVersion = Integer.parseInt(CommonUtils.getEnvironmentVariable(GlobalConstants.ENV_VAR_AM_VERSION, "0"));
+    launcherConfig = new LauncherConfiguration();
   }
 
   @Override
@@ -76,5 +79,10 @@ public class MockConfiguration extends Configuration {
   @Override
   protected String getAmQueue() {
     return "default";
+  }
+
+  @Override
+  protected LauncherConfiguration getLauncherConfig() {
+    return launcherConfig;
   }
 }

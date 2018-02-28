@@ -17,14 +17,12 @@
 
 package com.microsoft.frameworklauncher.common.model;
 
-import org.apache.hadoop.yarn.util.Records;
-
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 
 // Represent Integer values in Closed Range [begin, end]
-public class Range implements Serializable,  Comparable<Range>{
+public class Range implements Serializable, Comparable<Range> {
   @Valid
   @NotNull
   private Integer begin;
@@ -76,7 +74,6 @@ public class Range implements Serializable,  Comparable<Range>{
     return Range.newInstance(getBegin(), getEnd());
   }
 
-
   @Override
   public boolean equals(Object obj) {
     if (this == obj)
@@ -96,5 +93,14 @@ public class Range implements Serializable,  Comparable<Range>{
   @Override
   public String toString() {
     return String.format("[%d-%d]", begin, end);
+  }
+
+  public String toDetailString(String delimiter) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(getBegin().toString());
+    for (int i = getBegin() + 1; i <= getEnd(); i++) {
+      sb.append(delimiter + i);
+    }
+    return sb.toString();
   }
 }

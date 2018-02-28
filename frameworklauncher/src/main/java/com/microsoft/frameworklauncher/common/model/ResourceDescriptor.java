@@ -19,16 +19,18 @@ package com.microsoft.frameworklauncher.common.model;
 
 import com.microsoft.frameworklauncher.common.log.DefaultLogger;
 import com.microsoft.frameworklauncher.common.exts.CommonExts;
-import com.microsoft.frameworklauncher.common.utils.ValueRangeUtils;
-import org.apache.hadoop.yarn.api.records.Resource;
-import sun.awt.SunHints;
+import com.microsoft.frameworklauncher.common.utils.RangeUtils;
+import com.microsoft.frameworklauncher.common.exceptions.BadRequestException;
 
+import com.microsoft.frameworklauncher.common.utils.YamlUtils;
+import org.apache.hadoop.yarn.api.records.Resource;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class ResourceDescriptor implements Serializable {
   private static final DefaultLogger LOGGER = new DefaultLogger(ResourceDescriptor.class);
@@ -48,6 +50,10 @@ public class ResourceDescriptor implements Serializable {
   @Valid
   @NotNull
   private Integer portNumber = 0;
+
+  @Valid
+  @NotNull
+  private Map<String, Port> portDefinitions;
 
   @Valid
   @NotNull
@@ -97,6 +103,40 @@ public class ResourceDescriptor implements Serializable {
     this.portNumber = portNumber;
   }
 
+  public Map<String, Port> getPortDefinitions() {
+    return portDefinitions;
+  }
+
+  public void setPortDefinitions(Map<String, Port> portDefinitions) throws Exception {
+    this.portDefinitions = portDefinitions;
+    if (portDefinitions == null) {
+      return;
+    }
+
+    // Convert port information from user input format to List<Range> format for AM scheduling.
+    List<Range> portRangeList = new ArrayList<Range>();
+    int portNumber = 0;
+    for (Port port : portDefinitions.values()) {
+      if (port.getStart() != 0) {
+        portRangeList.add(Range.newInstance(port.getStart(), port.getStart() + port.getCount() - 1));
+      } else {
+        portNumber += port.getCount();
+      }
+    }
+
+    // portNumber and portRangeList are not allow coexistence.
+    // user is not allowed to set "Any" port and "Specified" port in the same task role.
+    // if
+    if (portNumber == 0 && RangeUtils.getValueNumber(portRangeList) > 0) {
+      this.setPortRanges(portRangeList);
+      this.setPortNumber(0);
+    } else if (portNumber > 0 && RangeUtils.getValueNumber(portRangeList) == 0) {
+      this.setPortNumber(portNumber);
+    } else if (portNumber > 0 && RangeUtils.getValueNumber(portRangeList) > 0){
+      throw new BadRequestException("illegal portDefinitions in ResourceDescriptor,Any port and Specified port are now allowed coexistence");
+    }
+  }
+
   public DiskType getDiskType() {
     return diskType;
   }
@@ -130,19 +170,20 @@ public class ResourceDescriptor implements Serializable {
   }
 
   public static ResourceDescriptor newInstance(Integer memoryMB, Integer cpuNumber, Integer gpuNumber, Long gpuAttribute) {
-    return ResourceDescriptor.newInstance(memoryMB, cpuNumber, gpuNumber, gpuAttribute, 0, new ArrayList<>());
+    return ResourceDescriptor.newInstance(memoryMB, cpuNumber, gpuNumber, gpuAttribute, 0, new ArrayList<Range>());
   }
 
-  public static ResourceDescriptor newInstance(Integer memoryMB, Integer cpuNumber, Integer gpuNumber, Long gpuAttribute, Integer portNumber, List<Range> portRanges) {
+  public static ResourceDescriptor newInstance(Integer memoryMB, Integer cpuNumber, Integer gpuNumber, Long gpuAttribute, int portNumber, List<Range> portRange) {
     ResourceDescriptor resource = new ResourceDescriptor();
     resource.setMemoryMB(memoryMB);
     resource.setCpuNumber(cpuNumber);
     resource.setGpuNumber(gpuNumber);
     resource.setGpuAttribute(gpuAttribute);
     resource.setPortNumber(portNumber);
-    resource.setPortRanges(portRanges);
+    resource.setPortRanges(portRange);
     return resource;
   }
+
 
   public static ResourceDescriptor fromResource(Resource res) throws Exception {
     ResourceDescriptor rd = new ResourceDescriptor();
@@ -179,22 +220,22 @@ public class ResourceDescriptor implements Serializable {
         Method getSortedRangesList = hadoopValueRangesClass.getMethod("getSortedRangesList");
         List<Object> hadoopValueRangeList = (List<Object>) getSortedRangesList.invoke(hadoopValueRanges);
 
-        List<Range> rangeList = new ArrayList();
+        List<Range> rangeList = new ArrayList<Range>();
         for (Object hadoopRange : hadoopValueRangeList) {
           Range range = new Range();
           range.setBegin((int) getBegin.invoke(hadoopRange));
           range.setEnd((int) getEnd.invoke(hadoopRange));
-          LOGGER.logDebug("Get Range: " + range);
+          LOGGER.logDebug("Get range: " + range);
           rangeList.add(range);
         }
         rd.setPortRanges(rangeList);
       }
     } catch (NoSuchMethodException e) {
-      LOGGER.logDebug(e, "Ignore: Failed to get Ports information, YARN library doesn't support Port");
+      LOGGER.logDebug(e, "Ignore: Failed to get Ports information, YARN library doesn't support port");
     } catch (IllegalAccessException e) {
       LOGGER.logError(e, "Ignore: Failed to get Ports information, illegal access function");
     } catch (ClassNotFoundException e) {
-      LOGGER.logDebug(e, "Ignore: Failed to get the class Name");
+      LOGGER.logDebug(e, "Ignore: Failed to get the class name");
     } catch (Exception e) {
       LOGGER.logDebug(e, "Ignore: Unknown exception");
     }
@@ -252,61 +293,65 @@ public class ResourceDescriptor implements Serializable {
         LOGGER.logDebug(e, "Ignore: Unknown exception");
       }
     }
-    LOGGER.logDebug("Put ResourceDescriptor " + this.toString() + " to hadoop resource: " + res);
+    LOGGER.logDebug("Put LocalResource " + this.toString() + " to hadoop resource: " + res);
     return res;
-  }
-
-  @Override
-  public String toString() {
-    String portString = "";
-    if (portRanges != null) {
-      for (Range range : portRanges) {
-        portString = portString + "[" + range.getBegin() + "-" + range.getEnd() + "],";
-      }
-    }
-    return String.format("[MemoryMB: [%s]", getMemoryMB()) + " " +
-        String.format("CpuNumber: [%s]", getCpuNumber()) + " " +
-        String.format("GpuNumber: [%s]", getGpuNumber()) + " " +
-        String.format("GpuAttribute: [%s]", CommonExts.toStringWithBits(getGpuAttribute()) + " " +
-            String.format("Port: [%s]", portString) + " " +
-            String.format("PortNumber: [%s]", getPortNumber()));
   }
 
   // Maybe underestimate if any GpuAttribute == 0
   public static ResourceDescriptor subtract(ResourceDescriptor lhs, ResourceDescriptor rhs) {
-    ResourceDescriptor ret = new ResourceDescriptor();
-    ret.setMemoryMB(lhs.getMemoryMB() - rhs.getMemoryMB());
-    ret.setCpuNumber(lhs.getCpuNumber() - rhs.getCpuNumber());
-    ret.setGpuAttribute(lhs.getGpuAttribute() & (~(rhs.getGpuAttribute())));
-    if (lhs.getGpuAttribute() != 0 && rhs.getGpuAttribute() != 0) {
-      ret.setGpuNumber(Long.bitCount(ret.getGpuAttribute()));
-    } else {
-      ret.setGpuNumber(lhs.getGpuNumber() - rhs.getGpuNumber());
-    }
-    ret.setPortRanges(ValueRangeUtils.subtractRange(lhs.getPortRanges(), rhs.getPortRanges()));
+    ResourceDescriptor ret = YamlUtils.deepCopy(lhs, ResourceDescriptor.class);
+    ResourceDescriptor.subtractFrom(ret, rhs);
+    return ret;
+  }
+
+  public static ResourceDescriptor subtractFrom(ResourceDescriptor lhs, ResourceDescriptor rhs) {
+    lhs.setMemoryMB(lhs.getMemoryMB() - rhs.getMemoryMB());
+    lhs.setCpuNumber(lhs.getCpuNumber() - rhs.getCpuNumber());
+    lhs.setGpuAttribute(lhs.getGpuAttribute() & (~(rhs.getGpuAttribute())));
+    lhs.setGpuNumber(Long.bitCount(lhs.getGpuAttribute()));
+    lhs.setPortRanges(RangeUtils.subtractRange(lhs.getPortRanges(), rhs.getPortRanges()));
+    lhs.setPortNumber(RangeUtils.getValueNumber(lhs.getPortRanges()));
+    return lhs;
+  }
+
+  public static ResourceDescriptor add(ResourceDescriptor lhs, ResourceDescriptor rhs) {
+    ResourceDescriptor ret = YamlUtils.deepCopy(lhs, ResourceDescriptor.class);
+    ResourceDescriptor.addTo(ret, rhs);
     return ret;
   }
 
   // Maybe overestimate if any GpuAttribute == 0
-  public static ResourceDescriptor add(ResourceDescriptor lhs, ResourceDescriptor rhs) {
-    ResourceDescriptor ret = new ResourceDescriptor();
-    ret.setMemoryMB(lhs.getMemoryMB() + rhs.getMemoryMB());
-    ret.setCpuNumber(lhs.getCpuNumber() + rhs.getCpuNumber());
-    ret.setGpuAttribute(lhs.getGpuAttribute() | rhs.getGpuAttribute());
-    if (lhs.getGpuAttribute() != 0 && rhs.getGpuAttribute() != 0) {
-      ret.setGpuNumber(Long.bitCount(ret.getGpuAttribute()));
-    } else {
-      ret.setGpuNumber(lhs.getGpuNumber() + rhs.getGpuNumber());
-    }
-    ret.setPortRanges(ValueRangeUtils.addRange(lhs.getPortRanges(), rhs.getPortRanges()));
-    return ret;
+  public static void addTo(ResourceDescriptor lhs, ResourceDescriptor rhs) {
+    lhs.setMemoryMB(lhs.getMemoryMB() + rhs.getMemoryMB());
+    lhs.setCpuNumber(lhs.getCpuNumber() + rhs.getCpuNumber());
+    lhs.setGpuAttribute(lhs.getGpuAttribute() | rhs.getGpuAttribute());
+    lhs.setGpuNumber(Long.bitCount(lhs.getGpuAttribute()));
+    lhs.setPortRanges(RangeUtils.addRange(lhs.getPortRanges(), rhs.getPortRanges()));
+    lhs.setPortNumber(RangeUtils.getValueNumber(lhs.getPortRanges()));
   }
+
 
   public static boolean fitsIn(ResourceDescriptor smaller, ResourceDescriptor bigger) {
     return smaller.getMemoryMB() <= bigger.getMemoryMB()
         && smaller.getCpuNumber() <= bigger.getCpuNumber()
         && smaller.getGpuNumber() <= bigger.getGpuNumber()
         && smaller.getGpuAttribute() == (smaller.getGpuAttribute() & bigger.getGpuAttribute())
-        && ValueRangeUtils.fitInRange(smaller.getPortRanges(), bigger.getPortRanges());
+        && RangeUtils.fitInRange(smaller.getPortRanges(), bigger.getPortRanges());
   }
+
+  @Override
+  public String toString() {
+    StringBuilder portString = new StringBuilder();
+    if (portRanges != null) {
+      for (Range range : portRanges) {
+        portString.append(range);
+      }
+    }
+    return String.format("[MemoryMB: [%s]", getMemoryMB()) + " " +
+        String.format("CpuNumber: [%s]", getCpuNumber()) + " " +
+        String.format("GpuNumber: [%s]", getGpuNumber()) + " " +
+        String.format("GpuAttribute: [%s]", CommonExts.toStringWithBits(getGpuAttribute())) + " " +
+        String.format("portRanges: [%s]", portString);
+  }
+
 }

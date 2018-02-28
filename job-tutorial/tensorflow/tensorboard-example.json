@@ -14,6 +14,12 @@
       "cpuNumber": 2,
       "memoryMB": 4096,
       "gpuNumber": 0,
+      "portDefinitions": {
+        "httpPort": {
+          "start": 0,
+          "count": 1
+        }
+      },
       "command": "/bin/bash code/tensorboard-example.sh"
     }
   ]
