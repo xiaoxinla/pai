@@ -54,7 +54,7 @@ aggregatedFrameworkStatuses:
       frameworkName: testString
       frameworkRetryPolicyState: {nonTransientRetriedCount: 0, retriedCount: 0, transientConflictRetriedCount: 0,
         transientNormalRetriedCount: 0, unKnownRetriedCount: 0}
-      frameworkState: FRAMEWORK_WAITING
+      frameworkState: null
       frameworkVersion: 0
 launcherStatus:
   launcherConfiguration:
@@ -89,11 +89,16 @@ launcherStatus:
     frameworkLeftoverGCMaxCount: 0
     hdfsRootDir: testString
     maxTotalTaskNumber: 0
+    rootAdminUsers: !!set
+      ? {name: testString}
+      : null
     serviceRMResyncIntervalSec: 0
     serviceRequestPullIntervalSec: 0
+    webServerAclEnable: false
     webServerAddress: testString
     webServerBindHost: testString
     webServerStatusPullIntervalSec: 0
+    zkCompressionEnable: false
     zkConnectString: testString
     zkRootDir: testString
   loggedInUser: {name: testString}

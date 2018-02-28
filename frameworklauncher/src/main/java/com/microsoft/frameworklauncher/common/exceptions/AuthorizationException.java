@@ -15,19 +15,24 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
 
-package com.microsoft.frameworklauncher.common.model;
+package com.microsoft.frameworklauncher.common.exceptions;
 
-import java.io.Serializable;
-import java.util.List;
+public class AuthorizationException extends NonTransientException {
+  private static final long serialVersionUID = 1L;
 
-public class RequestedFrameworkNames implements Serializable {
-  private List<String> frameworkNames;
-
-  public List<String> getFrameworkNames() {
-    return frameworkNames;
+  public AuthorizationException() {
+    super();
   }
 
-  public void setFrameworkNames(List<String> frameworkNames) {
-    this.frameworkNames = frameworkNames;
+  public AuthorizationException(String message) {
+    super(message);
+  }
+
+  public AuthorizationException(Throwable cause) {
+    super(cause);
+  }
+
+  public AuthorizationException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

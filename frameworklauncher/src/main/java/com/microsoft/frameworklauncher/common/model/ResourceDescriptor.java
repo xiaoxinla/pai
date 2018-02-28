@@ -17,13 +17,13 @@
 
 package com.microsoft.frameworklauncher.common.model;
 
-import com.microsoft.frameworklauncher.common.log.DefaultLogger;
 import com.microsoft.frameworklauncher.common.exts.CommonExts;
 import com.microsoft.frameworklauncher.common.utils.RangeUtils;
 import com.microsoft.frameworklauncher.common.exceptions.BadRequestException;
+import com.microsoft.frameworklauncher.common.log.DefaultLogger;
+import org.apache.hadoop.yarn.api.records.Resource;
 
 import com.microsoft.frameworklauncher.common.utils.YamlUtils;
-import org.apache.hadoop.yarn.api.records.Resource;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;

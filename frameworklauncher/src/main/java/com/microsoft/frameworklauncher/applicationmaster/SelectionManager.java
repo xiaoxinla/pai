@@ -342,7 +342,6 @@ public class SelectionManager { // THREAD SAFE
       }
     }
     selectionResult.setOptimizedResource(optimizedRequestResource);
-
     return selectionResult;
   }
 

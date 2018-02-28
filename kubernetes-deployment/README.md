@@ -35,17 +35,6 @@ Each k8s component runs in a Docker container. If Docker is missing in the OS, t
 
 Please specify the cluster configuration in a yaml file. The [cluster-config-example.yaml](./cluster-config-example.yaml) is an example, where some detailed explanation is included.
 
-## Prepare your dev-box environment
-
-Make sure your dev box has full network access to the cluster.
-
-Python(2.x) and lib install:
-```yaml
-sudo apt-get install python python-paramiko python-yaml python-jinja2
-```
-
-Note: kubectl will be installed on this dev-box. So it can access to your kubernetes cluster.
-
 ## Kubernetes high-availability 
 
 #### solution 1
@@ -132,29 +121,73 @@ proxymachinelist:
 
 ```
 
+## Cluster maintenance
+
+Please refer to this [wiki](https://github.com/Microsoft/pai/wiki/Cluster-Maintenance)
+
+## Prepare your dev-box environment
+
+
+#### Host Environment
+Make sure your dev box has full network access to the cluster.
+
+Python(2.x) and lib install:
+```yaml
+sudo apt-get install python python-paramiko python-yaml python-jinja2
+```
+
+Note: kubectl will be installed on this dev-box. So it can access to your kubernetes cluster.
+
+#### In a docker container
+- Make sure your dev box has full network access to the cluster.
+- Make sure your dev box has been installed docker.
+```bash
+sudo docker build -t kubernetes-deployment .
+sudo docker run -itd \
+        -e COLUMNS=$COLUMNS -e LINES=$LINES -e TERM=$TERM \
+        -v /path/to/your/cluster-configuration:/cluster-configuration  \
+        -v /var/lib/docker:/varl/lib/docker \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        --pid=host \
+        --privileged=true \
+        --net=host \
+        --name=deployment \
+        kubernetes-deployment
+sudo docker exec -it deployment /bin/bash
+cd /pai/kubernetes-deployment
+        
+```
+
+
 
 ## bootstrap
 
 ```bash
-sudo ./bootstrap.py -p yourclusterconfig.yaml -d
+sudo ./bootstrap.py -p yourclusterconfig.yaml -a deploy
 ```
 
 ## Destroy your cluster
 ```bash
-sudo ./bootstrap.py -p yourclusterconfig.yaml -c
+sudo ./bootstrap.py -p yourclusterconfig.yaml -a clean
 ```
 
 ## Only install kubectl into your dev-box
 ```bash
-sudo ./bootstrap.py -p yourclusterconfig.yaml
+sudo ./bootstrap.py -p yourclusterconfig.yaml -a install_kubectl
 ```
 
 ## Add new nodes to your cluster
 ```bash
-sudo ./bootstrap.py -p yourclusterconfig.yaml -f yournodelist.yaml -a
+sudo ./bootstrap.py -p yourclusterconfig.yaml -f yournodelist.yaml -a add
 ```
 
 ## Remove nodes from your cluster
 ```bash
-sudo ./bootstrap.py -p yourclusterconfig.yaml -f yournodelist.yaml -r
+sudo ./bootstrap.py -p yourclusterconfig.yaml -f yournodelist.yaml -a remove
+```
+
+
+## Repair the worker node with the unhealthy states
+```bash
+sudo ./bootstrap.py -p yourclusterconfig.yaml -f yournodelist.yaml -a repair
 ```

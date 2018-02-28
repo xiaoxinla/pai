@@ -29,7 +29,10 @@ import com.microsoft.frameworklauncher.common.model.*;
 import com.microsoft.frameworklauncher.common.service.AbstractService;
 import com.microsoft.frameworklauncher.common.service.StopStatus;
 import com.microsoft.frameworklauncher.common.service.SystemTaskQueue;
-import com.microsoft.frameworklauncher.common.utils.*;
+import com.microsoft.frameworklauncher.common.utils.CommonUtils;
+import com.microsoft.frameworklauncher.common.utils.HadoopUtils;
+import com.microsoft.frameworklauncher.common.utils.RetryUtils;
+import com.microsoft.frameworklauncher.common.utils.YamlUtils;
 import com.microsoft.frameworklauncher.common.validation.CommonValidation;
 import com.microsoft.frameworklauncher.common.web.WebCommon;
 import com.microsoft.frameworklauncher.hdfsstore.HdfsStore;
@@ -130,7 +133,7 @@ public class Service extends AbstractService {
     yarnClient.start();
 
     // Initialize Launcher Store
-    zkStore = new ZookeeperStore(conf.getZkConnectString(), conf.getZkRootDir());
+    zkStore = new ZookeeperStore(conf.getZkConnectString(), conf.getZkRootDir(), conf.getZkCompressionEnable());
     hdfsStore = new HdfsStore(conf.getHdfsRootDir());
 
     // Initialize other components
@@ -280,6 +283,7 @@ public class Service extends AbstractService {
 
     localEnvs.put(GlobalConstants.ENV_VAR_ZK_CONNECT_STRING, conf.getZkConnectString());
     localEnvs.put(GlobalConstants.ENV_VAR_ZK_ROOT_DIR, conf.getZkRootDir());
+    localEnvs.put(GlobalConstants.ENV_VAR_ZK_COMPRESSION_ENABLE, conf.getZkCompressionEnable().toString());
     localEnvs.put(GlobalConstants.ENV_VAR_AM_VERSION, conf.getAmVersion().toString());
     localEnvs.put(GlobalConstants.ENV_VAR_AM_RM_HEARTBEAT_INTERVAL_SEC, conf.getAmRmHeartbeatIntervalSec().toString());
 

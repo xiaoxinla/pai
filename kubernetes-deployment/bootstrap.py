@@ -24,7 +24,11 @@ import subprocess
 import jinja2
 import argparse
 import paramiko
+import maintainlib
+import importlib
+import time
 
+from maintainlib import common as pai_common
 
 
 def execute_shell(shell_cmd, error_msg):
@@ -35,6 +39,19 @@ def execute_shell(shell_cmd, error_msg):
     except subprocess.CalledProcessError:
         print error_msg
         sys.exit(1)
+
+
+
+def execute_shell_return(shell_cmd, error_msg):
+
+    try:
+        subprocess.check_call( shell_cmd, shell=True )
+
+    except subprocess.CalledProcessError:
+        print error_msg
+        return False
+
+    return True
 
 
 
@@ -96,63 +113,6 @@ def execute_shell_with_output(shell_cmd, error_msg):
 
 
 
-def sftp_paramiko(src, dst, filename, host_config):
-
-    hostip = str(host_config['hostip'])
-    username = str(host_config['username'])
-    password = str(host_config['password'])
-    port = 22
-    if 'sshport' in host_config:
-        port = int(host_config['sshport'])
-
-    # First make sure the folder exist.
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(hostname=hostip, port=port, username=username, password=password)
-
-    stdin, stdout, stderr = ssh.exec_command("sudo mkdir -p {0}".format(dst), get_pty=True)
-    stdin.write(password + '\n')
-    stdin.flush()
-    for response_msg in stdout:
-        print response_msg.strip('\n')
-
-    ssh.close()
-
-    # Put the file to target Path.
-    transport = paramiko.Transport((hostip, port))
-    transport.connect(username=username, password=password)
-
-    sftp = paramiko.SFTPClient.from_transport(transport)
-    sftp.put('{0}/{1}'.format(src, filename), '{0}/{1}'.format(dst, filename))
-    sftp.close()
-
-    transport.close()
-
-
-
-def ssh_shell_paramiko(host_config, commandline):
-
-    hostip = str(host_config['hostip'])
-    username = str(host_config['username'])
-    password = str(host_config['password'])
-    port = 22
-    if 'sshport' in host_config:
-        port = int(host_config['sshport'])
-
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(hostname=hostip, port=port, username=username, password=password)
-    stdin, stdout, stderr = ssh.exec_command(commandline, get_pty=True)
-    stdin.write(password + '\n')
-    stdin.flush()
-
-    for response_msg in stdout:
-        print response_msg.strip('\n')
-
-    ssh.close()
-
-
-
 def bootstrapScriptGenerate(cluster_config, host_config, role):
 
     src = "template"
@@ -208,9 +168,13 @@ def remoteBootstrap(cluster_info, host_config):
     src_local = "template/generated/{0}".format(host_config["hostip"])
     dst_remote = "/home/{0}".format(host_config["username"])
 
-    sftp_paramiko(src_local, dst_remote, srcipt_package, host_config)
+    if pai_common.sftp_paramiko(src_local, dst_remote, srcipt_package, host_config) == False:
+        return
+
     commandline = "tar -xvf kubernetes.tar && sudo ./src/start.sh {0}:8080 {1} {2}".format(cluster_info['api-servers-ip'], host_config['username'], host_config['hostip'])
-    ssh_shell_paramiko(host_config, commandline)
+
+    if pai_common.ssh_shell_paramiko(host_config, commandline) == False:
+        return
 
 
 
@@ -220,9 +184,13 @@ def remoteCleanUp(cluster_info, host_config):
     src_local = "./"
     dst_remote = "/home/{0}".format(host_config["username"])
 
-    sftp_paramiko(src_local, dst_remote, srcipt, host_config)
+    if pai_common.sftp_paramiko(src_local, dst_remote, srcipt, host_config) == False:
+        return
+
     commandline = "sudo sh cleanup.sh"
-    ssh_shell_paramiko(host_config, commandline)
+
+    if pai_common.ssh_shell_paramiko(host_config, commandline) == False:
+        return
 
 
 
@@ -285,7 +253,11 @@ def kubectl_install(cluster_info):
     kube_config_path = os.path.expanduser("~/.kube")
     write_generated_file(generated_file, "{0}/config".format(kube_config_path))
 
-    execute_shell( "kubectl get node", "Error in kubectl installing" )
+    while True:
+        res = execute_shell_return( "kubectl get node", "Error in kubectl installing" )
+
+        if res == True:
+            break
 
 
 
@@ -395,47 +367,59 @@ def remove_nodes(cluster_config, node_list_config):
 
 
 
+def maintain_one_node(cluster_config, maintain_config, node_config, job_name):
+
+    module_name = "maintainlib.{0}".format(job_name)
+    module = importlib.import_module(module_name)
+
+    job_class = getattr(module, job_name)
+    job_instance = job_class(cluster_config, node_config, True)
+
+    job_instance.run()
+
+
+
+def maintain_nodes(cluster_config, node_list_config, job_name):
+
+    # Todo: load maintain from a DB such as etcd instead of a yaml file.
+    maintain_config = load_yaml_file("maintain.yaml")
+
+    for host in node_list_config['machinelist']:
+
+        maintain_one_node(cluster_config, maintain_config, node_list_config['machinelist'][host], job_name)
+
+
+
 def option_validation(args):
 
-    if args.add or args.remove:
-        if args.add and args.remove:
-            print "You could only specify one option in -a and -r"
-            return False
-        if args.file == None:
-            print "Please specify the nodelist.yaml's path"
-            return False
-        if args.deploy or args.clean:
-            print "You could not specify the option (-a or -r) with the option (-d or -c)"
-            return False
-        # Add or remove node-list
-        return True
+    ret = False
 
-    if args.deploy or args.clean:
-
-        if args.deploy and args.clean:
-            print "You can only specify only one option in -d and -c !"
-            return False
-
+    option_list_without_file = ['deploy', 'clean', 'install_kubectl']
+    if args.action in option_list_without_file:
         if args.file != None:
-            print "Don't specify -f with option (-d or -c)"
+            print "[{0}] Error: Option -a [deploy, clean, install_kubectl] shouldn't combine with option -f".format(time.asctime())
             return False
-        # -d bootstrap
-        # -c destroy cluster
-        return True
+        ret = True
 
-    # only install kubectl
-    return True
+    option_list_with_file = ['add', 'remove', 'repair']
+    if args.action in option_list_with_file:
+        if args.file == None:
+            print "[{0}] Error: Option -a [add, remove, repair] should combine with option -f".format(time.asctime())
+            return False
+        ret = True
+
+    if ret == False:
+        print "[{0}] Error: {1} is non_existent".format(time.asctime(), args.action)
+
+    return ret
 
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--deploy', action="store_true", help='Deploy kubernetes to your cluster')
     parser.add_argument('-p', '--path', required=True, help='path of cluster configuration file')
-    parser.add_argument('-c', '--clean', action="store_true", help="clean the generated script")
+    parser.add_argument('-a', '--action', required=True, default=None, help="action to maintain the cluster")
     parser.add_argument('-f', '--file', default=None, help="An yamlfile with the nodelist to maintain")
-    parser.add_argument('-a', '--add', action="store_true", help="Add the node from nodelist.yaml")
-    parser.add_argument('-r', '--remove', action="store_true", help="Remove the node from nodelist.yaml")
 
     args = parser.parse_args()
 
@@ -453,7 +437,7 @@ def main():
     # Other service will write and read data through this address.
     cluster_config['clusterinfo']['etcd_cluster_ips_server'] = etcd_cluster_ips_server
 
-    if args.add:
+    if args.action == 'add':
         #Todo in the future we should finish the following two line
         #cluster_config = get_cluster_configuration()
         #node_list_config = get_node_list_config()
@@ -462,7 +446,7 @@ def main():
         #up_data_cluster_configuration()
         return
 
-    if args.remove:
+    if args.action == 'remove':
         # Todo in the future we should finish the following two line
         # cluster_config = get_cluster_configuration()
         # node_list_config = get_node_list()
@@ -471,19 +455,26 @@ def main():
         # up_data_cluster_configuration()
         return
 
+    if args.action == 'repair':
+        # Todo in the future we should finish the following two line
+        # cluster_config = get_cluster_configuration()
+        # node_list_config = get_node_list()
+        node_list_config = load_yaml_file(args.file)
+        maintain_nodes(cluster_config, node_list_config, args.action)
+        return
 
-    if args.deploy:
-        initial_bootstrap_cluster(cluster_config)
-
-    if args.clean:
+    if args.action == 'clean':
         destory_whole_cluster(cluster_config)
         print "Clean Up Finished!"
         return
 
-    #step : Install kubectl on the host.
-    kubectl_install(cluster_config[ 'clusterinfo' ])
+    if args.action == 'deploy':
+        initial_bootstrap_cluster(cluster_config)
 
-    if args.deploy:
+    if args.action == 'deploy' or args.action == 'install_kubectl':
+        kubectl_install(cluster_config[ 'clusterinfo' ])
+
+    if args.action == 'deploy':
         #step:  Kube-proxy
         kube_proxy_startup(cluster_config)
 
