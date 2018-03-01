@@ -13,6 +13,7 @@
     {
       "name": "ps_server",
       "taskNumber": 2,
+      "useTheSamePorts": true,
       "cpuNumber": 2,
       "memoryMB": 8192,
       "gpuNumber": 0,
@@ -27,6 +28,7 @@
     {
       "name": "worker",
       "taskNumber": 2,
+      "useTheSamePorts": true,
       "cpuNumber": 2,
       "memoryMB": 16384,
       "gpuNumber": 4,

@@ -11,6 +11,7 @@
     {
       "name": "tensorboard",
       "taskNumber": 1,
+      "useTheSamePorts": false,
       "cpuNumber": 2,
       "memoryMB": 4096,
       "gpuNumber": 0,

@@ -21,7 +21,7 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 
-public class Port implements Serializable {
+public class Ports implements Serializable {
   @Valid
   @NotNull
   private Integer start;

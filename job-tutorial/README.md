@@ -76,6 +76,7 @@ A json file describe detailed configuration required for a job submission. The d
     {
       "name":       String,
       "taskNumber": Integer,
+      "useTheSamePorts": Boolean,
       "cpuNumber":  Integer,
       "memoryMB":   Integer,
       "gpuNumber":  Integer,
@@ -107,19 +108,20 @@ Below please find the detailed explanation for each of the parameters in the con
 | `taskRoles`                    | List, required             | List of `taskRole`, one task role at least |
 | `taskRole.name`                | String in `^[A-Za-z0-9\-._~]+$` format, required | Name for the task role, need to be unique with other roles |
 | `taskRole.taskNumber`          | Integer, required          | Number for the task role, no less than 1 |
+| `taskRole.useTheSamePorts`     | Boolean, optional          | whether need all tasks use the same ports. the default is true |
 | `taskRole.cpuNumber`           | Integer, required          | CPU number for one task in the task role, no less than 1 |
 | `taskRole.memoryMB`            | Integer, required          | Memory for one task in the task role, no less than 100 |
 | `taskRole.gpuNumber`           | Integer, required          | GPU number for one task in the task role, no less than 0 |
 | `taskRole.command`             | String, required           | Executable command for tasks in the task role, can not be empty |
-| `taskRole.portDefinitions`     | Map, required              | A Map of port definition for one task in task role, one port definition at least |
-| `taskRole.portDefinitions.label`    | String, required      | The label of the port, use to describe the usage of the port, this label will be set as environment variable |
+| `taskRole.portDefinitions`     | Map, required              | A Map of port definitions for one task in a task role |
+| `taskRole.portDefinitions.label`    | String, required      | The label of the port, use to describe the usage of the port, this label will be set as environment variable in task container |
 | `taskRole.portDefinitions.label.start`     | Integer, required              | The start port, value 0 means any port |
 | `taskRole.portDefinitions.label.count`     | Integer, required              | The port count for this label |
 | `gpuType`                      | String, optional           | Specify the GPU type to be used in the tasks. If omitted, the job will run on any gpu type |
 | `killAllOnCompletedTaskNumber` | Integer, optional          | Number of completed tasks to kill the entire job, no less than 0 |
 | `retryCount`                   | Integer, optional          | Job retry count, no less than 0          |
 
-If you're using a private  Docker registry which needs authentication for image pull and is different from the registry used during deployment,
+If you're using a private Docker registry which needs authentication for image pull and is different from the registry used during deployment,
 please create an authentication file in the following format, upload it to HDFS and specify the path in `authFile` parameter in config file.
 
 ```
@@ -195,10 +197,12 @@ A distributed TensorFlow job is listed below as an example:
       "name": "worker",
       // use 2 workers in this job
       "taskNumber": 2,
+      // don't need all tasks use the same ports
+      "useTheSamePorts": "false"
       "cpuNumber": 2,
       "memoryMB": 16384,
       "gpuNumber": 4,
-      // below will try to allocate port 8080 and 8081, and they will be set into environment variable httpPort in worker container
+      // below will try to allocate port 8080 and 8081, and they will be set into environment variable httpPort in task container
       "portDefinitions": {
                   "httpPort": {
                     "start": 8080,

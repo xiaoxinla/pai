@@ -12,6 +12,7 @@
         "resource": {
           "cpuNumber": 1,
           "memoryMB": 1,
+          "useTheSamePorts": false,
           "portDefinitions": {
             "httpPort": {
               "start": 0,

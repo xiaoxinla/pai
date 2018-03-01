@@ -22,7 +22,7 @@ import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 
 // Represent Integer values in Closed Range [begin, end]
-public class Range implements Serializable, Comparable<Range> {
+public class ValueRange implements Serializable, Comparable<ValueRange> {
   @Valid
   @NotNull
   private Integer begin;
@@ -47,7 +47,7 @@ public class Range implements Serializable, Comparable<Range> {
     this.end = end;
   }
 
-  public int compareTo(Range other) {
+  public int compareTo(ValueRange other) {
     if (other == null) {
       return -1;
     }
@@ -63,15 +63,15 @@ public class Range implements Serializable, Comparable<Range> {
     }
   }
 
-  public static Range newInstance(int begin, int end) {
-    Range valueRange = new Range();
+  public static ValueRange newInstance(int begin, int end) {
+    ValueRange valueRange = new ValueRange();
     valueRange.setBegin(begin);
     valueRange.setEnd(end);
     return valueRange;
   }
 
-  public Range clone() {
-    return Range.newInstance(getBegin(), getEnd());
+  public ValueRange clone() {
+    return ValueRange.newInstance(getBegin(), getEnd());
   }
 
   @Override
@@ -80,9 +80,9 @@ public class Range implements Serializable, Comparable<Range> {
       return true;
     if (obj == null)
       return false;
-    if (!(obj instanceof Range))
+    if (!(obj instanceof ValueRange))
       return false;
-    Range other = (Range) obj;
+    ValueRange other = (ValueRange) obj;
     if (getBegin().intValue() == other.getBegin().intValue() && getEnd().intValue() == other.getEnd().intValue()) {
       return true;
     } else {
@@ -95,6 +95,7 @@ public class Range implements Serializable, Comparable<Range> {
     return String.format("[%d-%d]", begin, end);
   }
 
+  // Unfold the Range value to number value. i.e. Change 1-5 to format 1,2,3,4,5
   public String toDetailString(String delimiter) {
     StringBuilder sb = new StringBuilder();
     sb.append(getBegin().toString());

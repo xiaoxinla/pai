@@ -13,6 +13,7 @@
     {
       "name": "g2p-train",
       "taskNumber": 1,
+      "useTheSamePorts": false,
       "cpuNumber": 8,
       "memoryMB": 16384,
       "gpuNumber": 1,

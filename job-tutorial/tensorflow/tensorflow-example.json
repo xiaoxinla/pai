@@ -13,6 +13,7 @@
     {
       "name": "imagenet-train",
       "taskNumber": 1,
+      "useTheSamePorts": true,
       "cpuNumber": 8,
       "memoryMB": 32768,
       "gpuNumber": 1,

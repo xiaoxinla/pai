@@ -35,7 +35,7 @@ import com.microsoft.frameworklauncher.common.service.StopStatus;
 import com.microsoft.frameworklauncher.common.service.SystemTaskQueue;
 import com.microsoft.frameworklauncher.common.utils.CommonUtils;
 import com.microsoft.frameworklauncher.common.utils.HadoopUtils;
-import com.microsoft.frameworklauncher.common.utils.RangeUtils;
+import com.microsoft.frameworklauncher.common.utils.ValueRangeUtils;
 import com.microsoft.frameworklauncher.common.utils.YamlUtils;
 import com.microsoft.frameworklauncher.common.web.WebCommon;
 import com.microsoft.frameworklauncher.hdfsstore.HdfsStore;
@@ -346,7 +346,9 @@ public class ApplicationMaster extends AbstractService {
       return HadoopUtils.toContainerRequest(optimizedRequestResource, requestPriority, requestNodeLabel, null);
     }
 
-    String candidateNode = selectionResult.getSelectedNodeHosts().get(0);
+    //Random pick a host in the result set
+    int random = new Random().nextInt(selectionResult.getSelectedNodeHosts().size());
+    String candidateNode = selectionResult.getSelectedNodeHosts().get(random);
     optimizedRequestResource.setGpuAttribute(selectionResult.getGpuAttribute(candidateNode));
     return HadoopUtils.toContainerRequest(optimizedRequestResource, requestPriority, null, candidateNode);
   }
@@ -528,13 +530,14 @@ public class ApplicationMaster extends AbstractService {
     }
 
     // To keep all tasks have the same port in a task role.
-    // Verify if the new allocated container's port is the same with the task already allocated.
+    // Verify if the new allocated container's ports are the same with the task already allocated.
     // Will reject this container if the ports are not the same.
-    if(conf.getLauncherConfig().getAmTaskRoleSharedTheSamePorts()) {
+    String taskRoleName = taskStatus.getTaskRoleName();
+    if (requestManager != null && requestManager.getTaskRoles().get(taskRoleName).getUseTheSamePorts()) {
       ResourceDescriptor containerResource = ResourceDescriptor.fromResource(container.getResource());
-      List<Range> allocatedPorts = statusManager.getAllocatedTaskPorts(taskStatus.getTaskRoleName());
-      if (RangeUtils.getValueNumber(allocatedPorts) > 0) {
-        if (RangeUtils.isEqualRangeList(containerResource.getPortRanges(), allocatedPorts)) {
+      List<ValueRange> allocatedPorts = statusManager.getAllocatedTaskPorts(taskStatus.getTaskRoleName());
+      if (ValueRangeUtils.getValueNumber(allocatedPorts) > 0) {
+        if (ValueRangeUtils.isEqualRangeList(containerResource.getPortRanges(), allocatedPorts)) {
           LOGGER.logInfo(
               "[%s]: Container ports are not consistent with previous successfully allocated tasks",
               containerId);
@@ -621,8 +624,8 @@ public class ApplicationMaster extends AbstractService {
   private String setupPortsEnvironment(TaskStatus taskStatus) {
 
     String taskRoleName = taskStatus.getTaskRoleName();
-    Map<String, Port> portDefinitions = requestManager.getTaskResources().get(taskRoleName).getPortDefinitions();
-    List<Range> portRanges = taskStatus.getContainerPorts();
+    Map<String, Ports> portDefinitions = requestManager.getTaskResources().get(taskRoleName).getPortDefinitions();
+    List<ValueRange> portRanges = taskStatus.getContainerPorts();
     StringBuilder portsString = new StringBuilder();
 
     if (portDefinitions != null && !portDefinitions.isEmpty()) {
@@ -631,17 +634,17 @@ public class ApplicationMaster extends AbstractService {
       while (iter.hasNext()) {
         Map.Entry entry = (Map.Entry) iter.next();
         String key = (String) entry.getKey();
-        Port port = (Port) entry.getValue();
+        Ports ports = (Ports) entry.getValue();
         //if user specified ports, directly use the PortDefinitions in request.
-        if (port.getStart() > 0) {
-          portsString.append(key + ":" + port.getStart());
-          for (int i = 2; i < port.getCount(); i++) {
-            portsString.append("," + (port.getStart() + i - 1));
+        if (ports.getStart() > 0) {
+          portsString.append(key + ":" + ports.getStart());
+          for (int i = 2; i < ports.getCount(); i++) {
+            portsString.append("," + (ports.getStart() + i - 1));
           }
           portsString.append(";");
         } else {
           //if user not specified ports, assign the allocated ContainerPorts to each port label.
-          List<Range> assignPorts = RangeUtils.getSubRange(portRanges, port.getCount(), basePort);
+          List<ValueRange> assignPorts = ValueRangeUtils.getSubRange(portRanges, ports.getCount(), basePort);
           basePort = assignPorts.get(assignPorts.size() - 1).getEnd() + 1;
           portsString.append(key + ":" + assignPorts.get(0).toDetailString(","));
           for (int i = 1; i < assignPorts.size(); i++) {
@@ -662,7 +665,6 @@ public class ApplicationMaster extends AbstractService {
       } else {
         selectionManager.addNode(nodeReport);
       }
-
 
       // TODO: Update TaskStatus.ContainerIsDecommissioning
     }

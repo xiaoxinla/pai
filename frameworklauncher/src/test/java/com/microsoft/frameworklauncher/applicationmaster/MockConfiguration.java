@@ -18,7 +18,6 @@
 package com.microsoft.frameworklauncher.applicationmaster;
 
 import com.microsoft.frameworklauncher.common.GlobalConstants;
-import com.microsoft.frameworklauncher.common.model.LauncherConfiguration;
 import com.microsoft.frameworklauncher.common.model.ResourceDescriptor;
 import com.microsoft.frameworklauncher.common.utils.CommonUtils;
 
@@ -26,7 +25,6 @@ public class MockConfiguration extends Configuration {
   private String frameworkName;
   private Integer frameworkVersion;
   private Integer amVersion;
-  private LauncherConfiguration launcherConfig;
   private Boolean zkCompressionEnable;
 
   @Override
@@ -34,8 +32,7 @@ public class MockConfiguration extends Configuration {
     frameworkName = CommonUtils.getEnvironmentVariable(GlobalConstants.ENV_VAR_FRAMEWORK_NAME, "NAME");
     frameworkVersion = Integer.parseInt(CommonUtils.getEnvironmentVariable(GlobalConstants.ENV_VAR_FRAMEWORK_VERSION, "0"));
     amVersion = Integer.parseInt(CommonUtils.getEnvironmentVariable(GlobalConstants.ENV_VAR_AM_VERSION, "0"));
-    zkCompressionEnable = Boolean.parseBoolean(CommonUtils.getEnvironmentVariable(GlobalConstants.ENV_VAR_ZK_COMPRESSION_ENABLE));
-    launcherConfig = new LauncherConfiguration();
+    zkCompressionEnable = Boolean.parseBoolean(CommonUtils.getEnvironmentVariable(GlobalConstants.ENV_VAR_ZK_COMPRESSION_ENABLE, "false"));
   }
 
   @Override
@@ -86,10 +83,5 @@ public class MockConfiguration extends Configuration {
   @Override
   protected String getAmQueue() {
     return "default";
-  }
-
-  @Override
-  protected LauncherConfiguration getLauncherConfig() {
-    return launcherConfig;
   }
 }

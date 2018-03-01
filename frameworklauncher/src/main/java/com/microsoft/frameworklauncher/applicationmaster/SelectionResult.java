@@ -18,9 +18,9 @@
 package com.microsoft.frameworklauncher.applicationmaster;
 
 import com.microsoft.frameworklauncher.common.exts.CommonExts;
-import com.microsoft.frameworklauncher.common.model.Range;
+import com.microsoft.frameworklauncher.common.model.ValueRange;
 import com.microsoft.frameworklauncher.common.model.ResourceDescriptor;
-import com.microsoft.frameworklauncher.common.utils.RangeUtils;
+import com.microsoft.frameworklauncher.common.utils.ValueRangeUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,23 +30,23 @@ import java.util.List;
 public class SelectionResult {
 
   private Map<String, Long> selectedNodes = new HashMap<String, Long>();
-  private List<Range> overlapPorts = new ArrayList<>();
+  private List<ValueRange> overlapPorts = new ArrayList<ValueRange>();
   private ResourceDescriptor optimizedResource = ResourceDescriptor.newInstance(0, 0, 0, (long) 0);
 
-  public void addSelection(String hostName, Long gpuAttribute, List<Range> portList) {
+  public void addSelection(String hostName, Long gpuAttribute, List<ValueRange> portList) {
     if (selectedNodes.isEmpty()) {
       selectedNodes.put(hostName, gpuAttribute);
-      overlapPorts = RangeUtils.coalesceRangeList(portList);
+      overlapPorts = ValueRangeUtils.coalesceRangeList(portList);
       return;
     }
     if (selectedNodes.containsKey(hostName)) {
       selectedNodes.remove(hostName);
     }
     selectedNodes.put(hostName, gpuAttribute);
-    overlapPorts = RangeUtils.intersectRangeList(overlapPorts, portList);
+    overlapPorts = ValueRangeUtils.intersectRangeList(overlapPorts, portList);
   }
 
-  public List<Range> getOverlapPorts() {
+  public List<ValueRange> getOverlapPorts() {
     return overlapPorts;
   }
 

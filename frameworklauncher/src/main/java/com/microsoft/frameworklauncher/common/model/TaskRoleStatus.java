@@ -25,7 +25,7 @@ public class TaskRoleStatus implements Serializable {
   private String taskRoleName;
   private TaskRoleRolloutStatus taskRoleRolloutStatus;
   private Integer frameworkVersion;
-  private List<Range> portRanges = new ArrayList<>();
+  private List<ValueRange> portRanges = new ArrayList<>();
 
   // Add TaskRoleState to support TaskRoleDescriptor.dependOnTaskRoles
   // private TaskRoleState TaskRoleState = TaskRoleState.TaskRoleWaiting;
@@ -54,11 +54,11 @@ public class TaskRoleStatus implements Serializable {
     this.frameworkVersion = frameworkVersion;
   }
 
-  public List<Range> getPortRanges() {
+  public List<ValueRange> getPortRanges() {
     return portRanges;
   }
 
-  public void setPortRanges(List<Range> portRanges) {
+  public void setPortRanges(List<ValueRange> portRanges) {
     this.portRanges = portRanges;
   }
 }

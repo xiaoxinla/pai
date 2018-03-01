@@ -18,20 +18,18 @@
 package com.microsoft.frameworklauncher.common.utils;
 
 import com.microsoft.frameworklauncher.common.model.*;
-
-import java.net.PortUnreachableException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
 import java.util.Random;
 
-public class RangeUtils {
+public class ValueRangeUtils {
 
   /*
     sort the list range from small to big.
    */
-  public static List<Range> SortRangeList(List<Range> ranges) {
-    List<Range> newList = cloneList(ranges);
+  public static List<ValueRange> SortRangeList(List<ValueRange> ranges) {
+    List<ValueRange> newList = cloneList(ranges);
     Collections.sort(newList);
     return newList;
   }
@@ -39,14 +37,14 @@ public class RangeUtils {
   /*
     count the value number in a  range list.
    */
-  public static int getValueNumber(List<Range> rangeList) {
+  public static int getValueNumber(List<ValueRange> rangeList) {
     if (rangeList == null || rangeList.size() == 0) {
       return 0;
     }
 
-    List<Range> newRangeList = coalesceRangeList(rangeList);
+    List<ValueRange> newRangeList = coalesceRangeList(rangeList);
     int valueCount = 0;
-    for (Range range : newRangeList) {
+    for (ValueRange range : newRangeList) {
       valueCount += (range.getEnd() - range.getBegin() + 1);
     }
     return valueCount;
@@ -55,18 +53,18 @@ public class RangeUtils {
   /*
     coalesce the duplicate or overlap range in the range list.
    */
-  public static List<Range> coalesceRangeList(List<Range> rangeList) {
+  public static List<ValueRange> coalesceRangeList(List<ValueRange> rangeList) {
     if (rangeList == null || rangeList.isEmpty()) {
       return rangeList;
     }
 
-    List<Range> sortedList = SortRangeList(rangeList);
-    List<Range> resultList = new ArrayList<Range>();
+    List<ValueRange> sortedList = SortRangeList(rangeList);
+    List<ValueRange> resultList = new ArrayList<ValueRange>();
 
-    Range current = sortedList.get(0).clone();
+    ValueRange current = sortedList.get(0).clone();
     resultList.add(current);
 
-    for (Range range : sortedList) {
+    for (ValueRange range : sortedList) {
       // Skip if this range is equivalent to the current range.
       if (range.getBegin().intValue() == current.getBegin().intValue()
           && range.getEnd().intValue() == current.getEnd().intValue()) {
@@ -94,21 +92,21 @@ public class RangeUtils {
   /*
     get the overlap part of tow range lists
    */
-  public static List<Range> intersectRangeList(List<Range> leftRange, List<Range> rightRange) {
+  public static List<ValueRange> intersectRangeList(List<ValueRange> leftRange, List<ValueRange> rightRange) {
 
     if (leftRange == null || rightRange == null) {
       return null;
     }
 
-    List<Range> leftList = coalesceRangeList(leftRange);
-    List<Range> rightList = coalesceRangeList(rightRange);
+    List<ValueRange> leftList = coalesceRangeList(leftRange);
+    List<ValueRange> rightList = coalesceRangeList(rightRange);
 
-    List<Range> result = new ArrayList<Range>();
+    List<ValueRange> result = new ArrayList<ValueRange>();
     int i = 0;
     int j = 0;
     while (i < leftList.size() && j < rightList.size()) {
-      Range left = leftList.get(i);
-      Range right = rightList.get(j);
+      ValueRange left = leftList.get(i);
+      ValueRange right = rightList.get(j);
       // 1. no overlap, right is bigger than left
       if (left.getEnd() < right.getBegin()) {
         i++;
@@ -117,7 +115,7 @@ public class RangeUtils {
         j++;
         // 3. has overlap, get the overlap
       } else {
-        result.add(Range.newInstance(Math.max(left.getBegin(), right.getBegin()), Math.min(left.getEnd(), right.getEnd())));
+        result.add(ValueRange.newInstance(Math.max(left.getBegin(), right.getBegin()), Math.min(left.getEnd(), right.getEnd())));
         if (left.getEnd() < right.getEnd()) {
           i++;
         } else {
@@ -131,20 +129,20 @@ public class RangeUtils {
   /*
     delete the overlap part from leftRange.
    */
-  public static List<Range> subtractRange(List<Range> leftRange, List<Range> rightRange) {
+  public static List<ValueRange> subtractRange(List<ValueRange> leftRange, List<ValueRange> rightRange) {
 
     if (leftRange == null || rightRange == null) {
       return leftRange;
     }
 
-    List<Range> result = coalesceRangeList(leftRange);
-    List<Range> rightList = coalesceRangeList(rightRange);
+    List<ValueRange> result = coalesceRangeList(leftRange);
+    List<ValueRange> rightList = coalesceRangeList(rightRange);
 
     int i = 0;
     int j = 0;
     while (i < result.size() && j < rightList.size()) {
-      Range left = result.get(i);
-      Range right = rightList.get(j);
+      ValueRange left = result.get(i);
+      ValueRange right = rightList.get(j);
       // 1. no overlap, right is bigger than left
       if (left.getEnd() < right.getBegin()) {
         i++;
@@ -154,14 +152,14 @@ public class RangeUtils {
         // 3. has overlap, left is less than right
       } else {
         if (left.getBegin() < right.getBegin()) {
-          //3.1 Left start early than right, cut at the right begin;
+          //3.1 Left start earlier than right, cut at the right begin;
           if (left.getEnd() <= right.getEnd()) {
-            //3.1.1 Left end early than right, do nothing try next left;
+            //3.1.1 Left end earlier than right, do nothing, try next left;
             left.setEnd(right.getBegin() - 1);
             i++;
           } else {
             //3.1.2 Left end later than right, create a new range in left;
-            Range newRange = Range.newInstance(right.getEnd() + 1, left.getEnd());
+            ValueRange newRange = ValueRange.newInstance(right.getEnd() + 1, left.getEnd());
             result.add(i + 1, newRange);
             left.setEnd(right.getBegin() - 1);
             j++;
@@ -169,7 +167,7 @@ public class RangeUtils {
         } else {
           // 3.2 left start later than right
           if (left.getEnd() <= right.getEnd()) {
-            //3.2.1 left end early than right, just remove left
+            //3.2.1 left end earlier than right, just remove the left
             result.remove(i);
           } else {
             //3.2.2 left end later than right, just remove left
@@ -185,14 +183,14 @@ public class RangeUtils {
   /*
     add rightRange to leftRange, will ingore the overlap range.
    */
-  public static List<Range> addRange(List<Range> leftRange, List<Range> rightRange) {
+  public static List<ValueRange> addRange(List<ValueRange> leftRange, List<ValueRange> rightRange) {
 
     if (leftRange == null)
       return rightRange;
     if (rightRange == null)
       return leftRange;
 
-    List<Range> result = coalesceRangeList(leftRange);
+    List<ValueRange> result = coalesceRangeList(leftRange);
     result.addAll(rightRange);
     return coalesceRangeList(result);
   }
@@ -200,7 +198,7 @@ public class RangeUtils {
   /*
     verify if the bigRange include the small range
    */
-  public static boolean fitInRange(List<Range> smallRange, List<Range> bigRange) {
+  public static boolean fitInRange(List<ValueRange> smallRange, List<ValueRange> bigRange) {
     if (smallRange == null) {
       return true;
     }
@@ -209,13 +207,13 @@ public class RangeUtils {
       return false;
     }
 
-    List<Range> result = coalesceRangeList(bigRange);
-    List<Range> smallRangeList = coalesceRangeList(smallRange);
+    List<ValueRange> result = coalesceRangeList(bigRange);
+    List<ValueRange> smallRangeList = coalesceRangeList(smallRange);
     int i = 0;
     int j = 0;
     while (i < result.size() && j < smallRangeList.size()) {
-      Range big = result.get(i);
-      Range small = smallRangeList.get(j);
+      ValueRange big = result.get(i);
+      ValueRange small = smallRangeList.get(j);
 
       if (small.getBegin() < big.getBegin()) {
         return false;
@@ -236,12 +234,11 @@ public class RangeUtils {
   }
 
   /*
-    get a Random subRange list from the available range list, all the value in the subRange is bigger than baseValue.
-    and the value count in the subRange is requestNumber
+    get a random subRange list from the available range list, all the values in the subRange are bigger than baseValue.
    */
-  public static List<Range> getSubRange(List<Range> availableRange, int requestNumber, int baseValue) {
+  public static List<ValueRange> getSubRange(List<ValueRange> availableRange, int requestNumber, int baseValue) {
 
-    List<Range> resultList = new ArrayList<Range>();
+    List<ValueRange> resultList = new ArrayList<ValueRange>();
     Random random = new Random();
     //Pick a random number from 0 to the max value;
     int maxValue = availableRange.get(availableRange.size() - 1).getEnd();
@@ -254,16 +251,16 @@ public class RangeUtils {
       int needNumber = requestNumber;
       randomBase = randomBase / 2;
       int newbaseValue = baseValue + randomBase;
-      for (Range range : availableRange) {
+      for (ValueRange range : availableRange) {
         if (range.getEnd() < newbaseValue) {
           continue;
         }
         int start = Math.max(range.getBegin(), newbaseValue);
         if ((range.getEnd() - start + 1) >= needNumber) {
-          resultList.add(Range.newInstance(start, start + needNumber - 1));
+          resultList.add(ValueRange.newInstance(start, start + needNumber - 1));
           return resultList;
         } else {
-          resultList.add(Range.newInstance(start, range.getEnd()));
+          resultList.add(ValueRange.newInstance(start, range.getEnd()));
           needNumber -= (range.getEnd() - start + 1);
         }
       }
@@ -271,9 +268,9 @@ public class RangeUtils {
     return null;
   }
 
-  public static boolean isEqualRangeList(List<Range> leftRangeList, List<Range> rightRangeList) {
-    List<Range> leftRange = coalesceRangeList(leftRangeList);
-    List<Range> rightRange = coalesceRangeList(rightRangeList);
+  public static boolean isEqualRangeList(List<ValueRange> leftRangeList, List<ValueRange> rightRangeList) {
+    List<ValueRange> leftRange = coalesceRangeList(leftRangeList);
+    List<ValueRange> rightRange = coalesceRangeList(rightRangeList);
 
     if(leftRange == null || rightRange == null) {
       if(leftRange == rightRange) {
@@ -296,9 +293,9 @@ public class RangeUtils {
     return true;
   }
 
-  public static List<Range> cloneList(List<Range> list) {
-    List<Range> newList = new ArrayList<Range>();
-    for (Range range : list) {
+  public static List<ValueRange> cloneList(List<ValueRange> list) {
+    List<ValueRange> newList = new ArrayList<ValueRange>();
+    for (ValueRange range : list) {
       newList.add(range.clone());
     }
     return newList;
@@ -307,13 +304,13 @@ public class RangeUtils {
   /*
     get the value at "index" location in the Range list
    */
-  public static Integer getValue(List<Range> list, int index) {
+  public static Integer getValue(List<ValueRange> list, int index) {
     if (list == null) {
       return -1;
     }
-    List<Range> ranges = coalesceRangeList(list);
+    List<ValueRange> ranges = coalesceRangeList(list);
     int i = index;
-    for (Range range : ranges) {
+    for (ValueRange range : ranges) {
       if (range.getEnd() - range.getBegin() < i) {
         i -= (range.getEnd() - range.getBegin() + 1);
       } else {

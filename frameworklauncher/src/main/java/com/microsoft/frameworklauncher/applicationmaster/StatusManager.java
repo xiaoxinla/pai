@@ -499,15 +499,15 @@ public class StatusManager extends AbstractService {  // THREAD SAFE
   public Integer getUnAllocatedTaskCount(String taskRoleName) {
     int unAllocatedTastCount = 0;
     List<TaskStatus> taskStatusList = taskStatuseses.get(taskRoleName).getTaskStatusArray();
-    for(TaskStatus taskstatus : taskStatusList) {
-      if(taskstatus.getTaskState() == TaskState.TASK_WAITING || taskstatus.getTaskState() == TaskState.CONTAINER_REQUESTED) {
+    for (TaskStatus taskstatus : taskStatusList) {
+      if (taskstatus.getTaskState() == TaskState.TASK_WAITING || taskstatus.getTaskState() == TaskState.CONTAINER_REQUESTED) {
         unAllocatedTastCount++;
       }
     }
     return unAllocatedTastCount;
   }
 
-  public synchronized List<Range> getAllocatedTaskPorts(String taskRoleName) {
+  public synchronized List<ValueRange> getAllocatedTaskPorts(String taskRoleName) {
     List<TaskStatus> taskStatusList = taskStatuseses.get(taskRoleName).getTaskStatusArray();
     for (TaskStatus taskstatus : taskStatusList) {
       if (taskstatus.getTaskState() == TaskState.CONTAINER_ALLOCATED ||
@@ -517,19 +517,6 @@ public class StatusManager extends AbstractService {  // THREAD SAFE
       }
     }
     return null;
-  }
-
-  public synchronized List<String> getApplicationAllocatedHosts() {
-    List<String> allocatedHosts = new ArrayList<>();
-    for(TaskStatuses taskStatuses: taskStatuseses.values())
-    for (TaskStatus taskstatus : taskStatuses.getTaskStatusArray()) {
-      if (taskstatus.getTaskState() == TaskState.CONTAINER_ALLOCATED ||
-          taskstatus.getTaskState() == TaskState.CONTAINER_LAUNCHED ||
-          taskstatus.getTaskState() == TaskState.CONTAINER_RUNNING) {
-        allocatedHosts.add(taskstatus.getContainerHost());
-      }
-    }
-    return allocatedHosts;
   }
 
   // Returned TaskStatus is readonly, caller should not modify it

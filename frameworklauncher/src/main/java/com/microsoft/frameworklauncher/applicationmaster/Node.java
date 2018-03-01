@@ -40,7 +40,7 @@ public class Node implements Comparable<Node> {
     this.requestedResource = ResourceDescriptor.newInstance(0, 0, 0, 0L);
   }
 
-  //Compare by two node's AvailableResource,  Ignore the gpuAttribute and Ports because they are not countable resource.
+  // Compare two node's AvailableResource,  order is Gpu, Cpu, Memory
   public int compareTo(Node arg0) {
     if (this.getAvailableResource().getGpuNumber() > arg0.getAvailableResource().getGpuNumber())
       return 1;

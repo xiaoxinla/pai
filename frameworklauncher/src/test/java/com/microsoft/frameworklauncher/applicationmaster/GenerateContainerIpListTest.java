@@ -60,7 +60,6 @@ public class GenerateContainerIpListTest {
 
     CountDownLatch signal = new CountDownLatch(1);
     ApplicationMaster am = new AMForTest(signal);
-    am.initialize();
     Thread amThread = new Thread(() -> {
       try {
         am.start();

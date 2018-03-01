@@ -27,38 +27,38 @@ import java.util.List;
 
 import com.microsoft.frameworklauncher.common.model.*;
 
-public class RangeUtilsTest {
+public class ValueRangeUtilsTest {
 
   @Test
-  public void TestRangeUtils() {
-    List<Range> testRangeList = new ArrayList<Range>();
-    testRangeList.add(Range.newInstance(6, 7));
-    testRangeList.add(Range.newInstance(10, 100));
-    testRangeList.add(Range.newInstance(3, 5));
-    testRangeList.add(Range.newInstance(90, 102));
+  public void ValueRangeUtilsTest() {
+    List<ValueRange> testRangeList = new ArrayList<ValueRange>();
+    testRangeList.add(ValueRange.newInstance(6, 7));
+    testRangeList.add(ValueRange.newInstance(10, 100));
+    testRangeList.add(ValueRange.newInstance(3, 5));
+    testRangeList.add(ValueRange.newInstance(90, 102));
 
-    List<Range> testRangeList2 = new ArrayList<Range>();
-    testRangeList2.add(Range.newInstance(2, 3));
-    testRangeList2.add(Range.newInstance(7, 8));
-    testRangeList2.add(Range.newInstance(10, 20));
+    List<ValueRange> testRangeList2 = new ArrayList<ValueRange>();
+    testRangeList2.add(ValueRange.newInstance(2, 3));
+    testRangeList2.add(ValueRange.newInstance(7, 8));
+    testRangeList2.add(ValueRange.newInstance(10, 20));
 
-    List<Range> testRangeList3 = RangeUtils.cloneList(testRangeList2);
+    List<ValueRange> testRangeList3 = ValueRangeUtils.cloneList(testRangeList2);
 
-    List<Range> sortedResult = RangeUtils.SortRangeList(testRangeList);
+    List<ValueRange> sortedResult = ValueRangeUtils.SortRangeList(testRangeList);
     Assert.assertEquals(3, sortedResult.get(0).getBegin().intValue());
     Assert.assertEquals(6, sortedResult.get(1).getBegin().intValue());
     Assert.assertEquals(10, sortedResult.get(2).getBegin().intValue());
     Assert.assertEquals(90, sortedResult.get(3).getBegin().intValue());
 
 
-    List<Range> coalesceResult = RangeUtils.coalesceRangeList(testRangeList);
+    List<ValueRange> coalesceResult = ValueRangeUtils.coalesceRangeList(testRangeList);
     Assert.assertEquals(2, coalesceResult.size());
     Assert.assertEquals(3, coalesceResult.get(0).getBegin().intValue());
     Assert.assertEquals(7, coalesceResult.get(0).getEnd().intValue());
     Assert.assertEquals(10, coalesceResult.get(1).getBegin().intValue());
     Assert.assertEquals(102, coalesceResult.get(1).getEnd().intValue());
 
-    List<Range> result = RangeUtils.intersectRangeList(coalesceResult, testRangeList2);
+    List<ValueRange> result = ValueRangeUtils.intersectRangeList(coalesceResult, testRangeList2);
     Assert.assertEquals(3, result.size());
     Assert.assertEquals(3, result.get(0).getBegin().intValue());
     Assert.assertEquals(3, result.get(0).getEnd().intValue());
@@ -67,7 +67,7 @@ public class RangeUtilsTest {
     Assert.assertEquals(10, result.get(2).getBegin().intValue());
     Assert.assertEquals(20, result.get(2).getEnd().intValue());
 
-    result = RangeUtils.subtractRange(coalesceResult, testRangeList2);
+    result = ValueRangeUtils.subtractRange(coalesceResult, testRangeList2);
     Assert.assertEquals(2, result.size());
     Assert.assertEquals(4, result.get(0).getBegin().intValue());
     Assert.assertEquals(6, result.get(0).getEnd().intValue());
@@ -75,9 +75,9 @@ public class RangeUtilsTest {
     Assert.assertEquals(102, result.get(1).getEnd().intValue());
 
 
-    List<Range> testRangeList7 = new ArrayList<Range>();
-    testRangeList7.add(Range.newInstance(80, 80));
-    result = RangeUtils.subtractRange(coalesceResult, testRangeList7);
+    List<ValueRange> testRangeList7 = new ArrayList<ValueRange>();
+    testRangeList7.add(ValueRange.newInstance(80, 80));
+    result = ValueRangeUtils.subtractRange(coalesceResult, testRangeList7);
     Assert.assertEquals(3, result.size());
     Assert.assertEquals(3, result.get(0).getBegin().intValue());
     Assert.assertEquals(7, result.get(0).getEnd().intValue());
@@ -87,7 +87,7 @@ public class RangeUtilsTest {
     Assert.assertEquals(102, result.get(2).getEnd().intValue());
 
 
-    result = RangeUtils.addRange(sortedResult, testRangeList2);
+    result = ValueRangeUtils.addRange(sortedResult, testRangeList2);
     Assert.assertEquals(2, result.size());
     Assert.assertEquals(2, result.get(0).getBegin().intValue());
     Assert.assertEquals(8, result.get(0).getEnd().intValue());
@@ -95,37 +95,37 @@ public class RangeUtilsTest {
     Assert.assertEquals(102, result.get(1).getEnd().intValue());
 
 
-    List<Range> testRangeList4 = new ArrayList<Range>();
-    testRangeList4.add(Range.newInstance(2, 3));
-    Assert.assertTrue(RangeUtils.fitInRange(testRangeList4, testRangeList3));
+    List<ValueRange> testRangeList4 = new ArrayList<ValueRange>();
+    testRangeList4.add(ValueRange.newInstance(2, 3));
+    Assert.assertTrue(ValueRangeUtils.fitInRange(testRangeList4, testRangeList3));
 
-    List<Range> testRangeList5 = new ArrayList<Range>();
-    testRangeList5.add(Range.newInstance(1, 3));
-    Assert.assertTrue(!RangeUtils.fitInRange(testRangeList5, testRangeList3));
+    List<ValueRange> testRangeList5 = new ArrayList<ValueRange>();
+    testRangeList5.add(ValueRange.newInstance(1, 3));
+    Assert.assertTrue(!ValueRangeUtils.fitInRange(testRangeList5, testRangeList3));
 
-    List<Range> testRangeList6 = new ArrayList<Range>();
-    testRangeList6.add(Range.newInstance(9, 9));
-    Assert.assertTrue(!RangeUtils.fitInRange(testRangeList6, testRangeList3));
+    List<ValueRange> testRangeList6 = new ArrayList<ValueRange>();
+    testRangeList6.add(ValueRange.newInstance(9, 9));
+    Assert.assertTrue(!ValueRangeUtils.fitInRange(testRangeList6, testRangeList3));
 
-    result = RangeUtils.getSubRange(testRangeList3, 1, 0);
+    result = ValueRangeUtils.getSubRange(testRangeList3, 1, 0);
     Assert.assertEquals(1, result.size());
-    Assert.assertEquals(1, RangeUtils.getValueNumber(result));
+    Assert.assertEquals(1, ValueRangeUtils.getValueNumber(result));
 
-    result = RangeUtils.getSubRange(testRangeList3, 3, 0);
-    Assert.assertEquals(3, RangeUtils.getValueNumber(result));
+    result = ValueRangeUtils.getSubRange(testRangeList3, 3, 0);
+    Assert.assertEquals(3, ValueRangeUtils.getValueNumber(result));
 
-    result = RangeUtils.getSubRange(testRangeList3, 3, 10);
-    Assert.assertEquals(3, RangeUtils.getValueNumber(result));
+    result = ValueRangeUtils.getSubRange(testRangeList3, 3, 10);
+    Assert.assertEquals(3, ValueRangeUtils.getValueNumber(result));
     Assert.assertTrue(result.get(0).getBegin() > 10);
     Assert.assertTrue(result.get(0).getEnd() > 10);
 
-    List<Range> testRangeList10 = new ArrayList<Range>();
-    testRangeList10.add(Range.newInstance(80, 80));
-    testRangeList10.add(Range.newInstance(80, 81));
-    testRangeList10.add(Range.newInstance(100, 103));
+    List<ValueRange> testRangeList10 = new ArrayList<ValueRange>();
+    testRangeList10.add(ValueRange.newInstance(80, 80));
+    testRangeList10.add(ValueRange.newInstance(80, 81));
+    testRangeList10.add(ValueRange.newInstance(100, 103));
     int[] expectedResult = {80, 81, 100, 101, 102, 103};
-    for (int i = 0; i < RangeUtils.getValueNumber(testRangeList10); i++) {
-      Assert.assertEquals(expectedResult[i], RangeUtils.getValue(testRangeList10, i).intValue());
+    for (int i = 0; i < ValueRangeUtils.getValueNumber(testRangeList10); i++) {
+      Assert.assertEquals(expectedResult[i], ValueRangeUtils.getValue(testRangeList10, i).intValue());
     }
   }
 }

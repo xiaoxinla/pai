@@ -20,7 +20,7 @@ package com.microsoft.frameworklauncher.applicationmaster;
 
 import com.microsoft.frameworklauncher.common.exceptions.NotAvailableException;
 import com.microsoft.frameworklauncher.common.model.*;
-import com.microsoft.frameworklauncher.common.utils.RangeUtils;
+import com.microsoft.frameworklauncher.common.utils.ValueRangeUtils;
 import com.microsoft.frameworklauncher.common.utils.YamlUtils;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.junit.Assert;
@@ -262,21 +262,21 @@ public class SelectionManagerTest {
 
   @Test
   public void testSelectionManagerWithPorts() throws Exception {
-    List<Range> ports = new ArrayList<Range>();
-    ports.add(Range.newInstance(2005, 2010));
+    List<ValueRange> ports = new ArrayList<ValueRange>();
+    ports.add(ValueRange.newInstance(2005, 2010));
 
-    List<Range> ports1 = new ArrayList<Range>();
-    ports1.add(Range.newInstance(2003, 2005));
-    ports1.add(Range.newInstance(2007, 2010));
+    List<ValueRange> ports1 = new ArrayList<ValueRange>();
+    ports1.add(ValueRange.newInstance(2003, 2005));
+    ports1.add(ValueRange.newInstance(2007, 2010));
 
-    List<Range> ports2 = new ArrayList<Range>();
-    ports2.add(Range.newInstance(2003, 2005));
+    List<ValueRange> ports2 = new ArrayList<ValueRange>();
+    ports2.add(ValueRange.newInstance(2003, 2005));
 
-    List<Range> ports3 = new ArrayList<Range>();
-    ports3.add(Range.newInstance(2010, 2010));
+    List<ValueRange> ports3 = new ArrayList<ValueRange>();
+    ports3.add(ValueRange.newInstance(2010, 2010));
 
-    List<Range> ports4 = new ArrayList<Range>();
-    ports4.add(Range.newInstance(2005, 2006));
+    List<ValueRange> ports4 = new ArrayList<ValueRange>();
+    ports4.add(ValueRange.newInstance(2005, 2006));
 
     Node node1 = new Node("node1", null, ResourceDescriptor.newInstance(2, 2, 2, 3L, 6, ports), ResourceDescriptor.newInstance(0, 0, 0, 0L));
     Node node2 = new Node("node2", null, ResourceDescriptor.newInstance(2, 2, 4, 0xFL, 7, ports1), ResourceDescriptor.newInstance(0, 0, 0, 0L, 3, ports2));

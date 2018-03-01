@@ -17,8 +17,6 @@
 
 package com.microsoft.frameworklauncher.common.model;
 
-import com.sun.el.parser.BooleanNode;
-
 import javax.validation.constraints.Pattern;
 import java.io.Serializable;
 import java.util.HashSet;
@@ -65,7 +63,6 @@ public class LauncherConfiguration implements Serializable {
   private Integer amSearchNodeBufferFactor = 2;
 
   private Boolean amSkipLocalTriedResource = false;
-  private Boolean amTaskRoleSharedTheSamePorts = false;
   private Boolean amAllowNoneGpuJobOnGpuNode = true;
 
   // ApplicationMaster Setup
@@ -261,14 +258,6 @@ public class LauncherConfiguration implements Serializable {
 
   public void setAmSkipLocalTriedResource(Boolean amSkipLocalTriedResource) {
     this.amSkipLocalTriedResource = amSkipLocalTriedResource;
-  }
-
-  public Boolean getAmTaskRoleSharedTheSamePorts() {
-    return amTaskRoleSharedTheSamePorts;
-  }
-
-  public void setAmTaskRoleSharedTheSamePorts(Boolean amTaskRoleSharedTheSamePorts) {
-    this.amTaskRoleSharedTheSamePorts = amTaskRoleSharedTheSamePorts;
   }
 
   public Boolean getAmAllowNoneGpuJobOnGpuNode() {
