@@ -209,7 +209,7 @@ public class SelectionManager { // THREAD SAFE
     filterNodesByResource(optimizedRequestResource, am.getConfiguration().getLauncherConfig().getAmSkipLocalTriedResource());
 
     filterNodesByRackSelectionPolicy(optimizedRequestResource, pendingTaskNumber);
-    if (filteredNodes.size() < pendingTaskNumber) {
+    if (filteredNodes.size() < 1) {
       //don't have candidate nodes for this request.
       if (requestNodeGpuType != null || requestResource.getPortNumber() > 0) {
         //If gpuType or portNumber is specified, abort this request and try later.
