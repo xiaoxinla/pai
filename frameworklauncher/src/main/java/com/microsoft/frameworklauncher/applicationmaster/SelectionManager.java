@@ -109,14 +109,14 @@ public class SelectionManager { // THREAD SAFE
     }
   }
 
-  private void filterNodesForNonGpuTask(ResourceDescriptor requestResource) {
-    if (requestResource != null && requestResource.getGpuNumber() == 0) {
+  private void filterNodesForNonGpuJob(ResourceDescriptor jobTotalRequestResource) {
+    if (jobTotalRequestResource != null && jobTotalRequestResource.getGpuNumber() == 0) {
       for (int i = filteredNodes.size(); i > 0; i--) {
         Node node = allNodes.get(filteredNodes.get(i - 1));
         ResourceDescriptor totalResource = node.getTotalResource();
         if (totalResource.getGpuNumber() > 0) {
-          LOGGER.logDebug("skip nodes with Gpu resource for non-gpu job: Node [%s], Request Resource: [%s], Total Resource: [%s]",
-              node.getHost(), requestResource, totalResource);
+          LOGGER.logDebug("skip nodes with Gpu resource for non-gpu job: Node [%s], Job request resource: [%s], Node total tesource: [%s]",
+              node.getHost(), jobTotalRequestResource, totalResource);
           filteredNodes.remove(i - 1);
         }
       }
@@ -194,8 +194,9 @@ public class SelectionManager { // THREAD SAFE
     randomizeNodes();
     filterNodesByNodeLabel(requestNodeLabel);
     filterNodesByGpuType(requestNodeGpuType);
-    if(!am.getConfiguration().getLauncherConfig().getAmAllowNoneGpuJobOnGpuNode()) {
-      filterNodesForNonGpuTask(requestResource);
+    if (!am.getConfiguration().getLauncherConfig().getAmAllowNoneGpuJobOnGpuNode()) {
+      ResourceDescriptor jobTotalRequestResource = am.getRequestManager().getJobTotalCountableResources();
+      filterNodesForNonGpuJob(jobTotalRequestResource);
     }
 
     ResourceDescriptor optimizedRequestResource = YamlUtils.deepCopy(requestResource, ResourceDescriptor.class);

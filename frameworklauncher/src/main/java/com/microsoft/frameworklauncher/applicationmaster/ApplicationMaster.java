@@ -328,6 +328,7 @@ public class ApplicationMaster extends AbstractService {
     String requestNodeLabel = requestManager.getTaskPlatParams().get(taskRoleName).getTaskNodeLabel();
 
     ResourceDescriptor requestResource = requestManager.getTaskResources().get(taskRoleName);
+
     ResourceDescriptor maxResource = conf.getMaxResource();
 
     if (!ResourceDescriptor.fitsIn(requestResource, maxResource)) {
