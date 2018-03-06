@@ -18,11 +18,12 @@
 
 // module dependencies
 const path = require('path');
-const fse = require('fs-extra');
-const low = require('lowdb');
-const FileSync = require('lowdb/adapters/FileSync');
 const crypto = require('crypto');
 const config = require('../config/index');
+const logger = require('../config/logger');
+const etcdConfig = require('../config/etcd');
+const etcdUtils = require('../utils/etcd');
+const unirest = require('unirest');
 
 const encrypt = (username, password, callback) => {
   const iterations = 10000;
@@ -37,17 +38,8 @@ const encrypt = (username, password, callback) => {
   }
 };
 
-const defaultValue = {};
-defaultValue[config.lowdbAdmin] = {
-  passwd: encrypt(config.lowdbAdmin, config.lowdbPasswd),
-  admin: true,
-};
-fse.ensureDirSync(path.dirname(config.lowdbFile));
-const adapter = new FileSync(config.lowdbFile, {defaultValue: defaultValue});
-const db = low(adapter);
-
 const update = (username, password, admin, modify, callback) => {
-  if (typeof modify === 'undefined' || db.has(username).value() !== modify) {
+  if (typeof modify === 'undefined') {
     callback(null, false);
   } else {
     encrypt(username, password, (err, derivedKey) => {
@@ -55,12 +47,21 @@ const update = (username, password, admin, modify, callback) => {
         callback(err, false);
       } else {
         if (modify) {
-          db.set(`${username}.passwd`, derivedKey).write();
+          etcdUtils.set(etcdConfig.userPasswdPath(username), derivedKey, true, (res) => {
+            logger.info(res);
+          });
         } else {
-          db.set(username, {passwd: derivedKey, admin: false}).write();
+          etcdUtils.mkdir(etcdConfig.userPath(username), (res) => {
+            logger.info(res);
+            etcdUtils.set(etcdConfig.userPasswdPath(username), derivedKey, false, (result) => {
+              logger.info(result);
+            });
+          });
         }
         if (typeof admin !== 'undefined') {
-          db.set(`${username}.admin`, admin).write();
+          etcdUtils.set(etcdConfig.userAdminPath(username), admin, false, (res) => {
+            logger.info(res);
+          });
         }
         callback(null, true);
       }
@@ -72,12 +73,15 @@ const remove = (username, callback) => {
   if (typeof username === 'undefined' || !db.has(username).value()) {
     callback(new Error('user does not exist'), false);
   } else {
-    if (db.get(`${username}.admin`).value()) {
-      callback(new Error('can not delete admin user'), false);
-    } else {
-      db.unset(username).write();
-      callback(null, true);
-    }
+    etcdUtils.get(etcdConfig.userPath(username), (res) => {
+      logger.info(res);
+    });
+    //if (db.get(`${username}.admin`).value()) {
+    //  callback(new Error('can not delete admin user'), false);
+    //} else {
+    //  db.unset(username).write();
+    //  callback(null, true);
+    //}
   }
 };
 

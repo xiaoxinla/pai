@@ -17,48 +17,43 @@
 
 
 // module dependencies
-const fse = require('fs-extra');
-const Joi = require('joi');
-const dotenv = require('dotenv');
+const unirest = require('unirest');
 
-
-require.extensions['.mustache'] = (module, filename) => {
-  module.exports = fse.readFileSync(filename, 'utf8');
+const get = (path, next) => {
+  unirest.get(key)
+    .end((res) => {
+      next(res);
+    })
 };
 
-dotenv.config();
-
-// get config from environment variables
-let config = {
-  env: process.env.NODE_ENV,
-  logLevel: process.env.LOG_LEVEL,
-  serverPort: process.env.SERVER_PORT,
-  jwtSecret: process.env.JWT_SECRET,
-};
-
-// define config schema
-const configSchema = Joi.object().keys({
-  env: Joi.string()
-    .allow(['test', 'development', 'production'])
-    .default('development'),
-  logLevel: Joi.string()
-    .allow(['error', 'warn', 'info', 'verbose', 'debug', 'silly'])
-    .default('debug'),
-  serverPort: Joi.number()
-    .integer()
-    .min(8000)
-    .max(65535)
-    .default(9186),
-  jwtSecret: Joi.string()
-    .required()
-    .description('JWT Secret required to sign'),
-}).required();
-
-const {error, value} = Joi.validate(config, configSchema);
-if (error) {
-  throw new Error(`config error\n${error}`);
+const set = (path, value, exist, next) => {
+  var params = { value: value };
+  if (exist) {
+    params.prevExist = true;
+  }
+  unirest.put(path)
+    .send(params)
+    .end((res) => {
+      next(res);
+    })
 }
-config = value;
 
-// module exports
-module.exports = config;
+const remove = (path, isDir, next) => {
+  if (isDir) {
+    path = `${path}?dir=true&recursive=true`;
+  }
+  unirest.delete(path)
+    .end((res) => {
+      next(res);
+    })
+}
+
+const mkdir = (path, next) => {
+  unirest.put(path)
+    .send({ dir: true })
+    .end((res) => {
+      next(res);
+    })
+}
+
+module.exports = {get, set, remove, mkdir};
