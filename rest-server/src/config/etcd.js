@@ -32,19 +32,19 @@ let etcdConfig = {
 };
 
 etcdConfig.storagePath = () => {
-  return `${launcherConfig.etcdUri}/v2/keys/users/`;
+  return `${etcdConfig.etcdUri}/v2/keys/users/`;
 };
 
 etcdConfig.userPath = (username) => {
-  return `${launcherConfig.etcdUri}/v2/keys/users/${username}`;
+  return `${etcdConfig.etcdUri}/v2/keys/users/${username}`;
 };
 
 etcdConfig.userPasswdPath = (username) => {
-  return `${launcherConfig.etcdUri}/v2/keys/users/${username}/passwd`;
+  return `${etcdConfig.etcdUri}/v2/keys/users/${username}/passwd`;
 };
 
 etcdConfig.userAdminPath = (username) => {
-  return `${launcherConfig.etcdUri}/v2/keys/users/${username}/admin`;
+  return `${etcdConfig.etcdUri}/v2/keys/users/${username}/admin`;
 };
 
 // define config schema
