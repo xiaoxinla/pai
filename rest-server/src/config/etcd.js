@@ -23,6 +23,7 @@ const dotenv = require('dotenv');
 const unirest = require('unirest');
 const etcdUtils = require('../utils/etcd');
 const user = require('../models/user');
+const indexConfig = require('./index');
 
 let etcdConfig = {
   etcdUri: process.env.ETCD_URI,
@@ -104,7 +105,7 @@ const prepareStoragePath = () => {
   })
 };
 
-if (config.env !== 'test') {
+if (indexConfig.env !== 'test') {
   unirest.get(etcdConfig.storagePath())
     .timeout(2000)
     .end((res) => {
