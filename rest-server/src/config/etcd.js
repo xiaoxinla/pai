@@ -90,32 +90,22 @@ const createDefaultAdmin = () => {
 }
 
 const prepareStoragePath = () => {
-  //unirest.put(etcdConfig.storagePath)
-  //  .send({dir: true})
-  //  .timeout(2000)
-  //  .end((res) => {
-  //    if (res.status === 200) {
-  //      logger.info('create storage path successfully');
-  //      logger.info(res);
-  //    } else {
-  //      throw new Error('unable to create storage path');
-  //    }
-  //  });
   etcdUtils.mkdir(etcdConfig.storagePath(), (res) => {
     logger.info(res);
-  })
+    if (res.status === 201 || res.status === 200) {
+      createDefaultAdmin();
+    }
+  });
 };
 
 if (indexConfig.env !== 'test') {
-  unirest.get(etcdConfig.storagePath())
-    .timeout(2000)
-    .end((res) => {
-      if (res.status === 200) {
-        logger.info('storage path already exist');
-      } else {
-        prepareStoragePath();
-      }
-    });
+  etcdUtils.get(etcdConfig.storagePath(), (res) => {
+    if (res.status === 200) {
+      logger.info('storage path already exist');
+    } else {
+      prepareStoragePath();
+    }
+  });
 }
 
 // module exports

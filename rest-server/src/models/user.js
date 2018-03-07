@@ -40,9 +40,26 @@ const encrypt = (username, password, callback) => {
 
 const get = (username, callback) => {
   var user = { username: username };
-  etcdUtils.get(etcdConfig.userPath, (res) => {
+  etcdUtils.get(etcdConfig.userPasswdPath(username), (res) => {
     logger.info(res);
-    callback(null);
+    const resJson = typeof res.body === 'object' ?
+      res.body : JSON.parse(res.body);
+    if (resJson.errorCode) {
+      callback(null);
+    } else {
+      user.passwd = resJson.value;
+      etcdUtils.get(etcdConfig.userAdminPath(username), (result) => {
+        logger.info(result);
+        const resultJson = typeof result.body === 'object' ?
+          result.body : JSON.parse(result.body);
+        if (resultJson.errorCode) {
+          callback(null);
+        } else {
+          user.admin = resultJson.value;
+          callback(user);
+        }
+      });
+    }
   });
 };
 
@@ -81,15 +98,23 @@ const remove = (username, callback) => {
   if (typeof username === 'undefined' || !db.has(username).value()) {
     callback(new Error('user does not exist'), false);
   } else {
-    etcdUtils.get(etcdConfig.userPath(username), (res) => {
+    etcdUtils.get(etcdConfig.userAdminPath(username), (res) => {
       logger.info(res);
+      const resJson = typeof res.body === 'object' ?
+        res.body : JSON.parse(res.body);
+      if (resJson.errorCode) {
+        callback(new Error('delete user failed'), false);
+      } else {
+        if (resJson.value) {
+          callback(new Error('can not delete admin user'), false);
+        } else {
+          etcdUtils.remove(etcdConfig.userPath(username), true, (result) => {
+            logger.info(result);
+            callback(null, true);
+          })
+        }
+      }
     });
-    //if (db.get(`${username}.admin`).value()) {
-    //  callback(new Error('can not delete admin user'), false);
-    //} else {
-    //  db.unset(username).write();
-    //  callback(null, true);
-    //}
   }
 };
 

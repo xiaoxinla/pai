@@ -18,22 +18,15 @@
 const userModel = require('./user');
 
 const check = (username, password, callback) => {
-  //if (!userModel.db.has(username).value()) {
-  //  callback(null, false, false);
-  //} else {
-  //  const user = userModel.db.get(username).value();
-  //  userModel.encrypt(username, password, (err, derivedKey) => {
-  //    callback(err, derivedKey === user.passwd, user.admin);
-  //  });
-  //}
-  const user = userModel.get(username);
-  if (!user) {
-    callback(null, false, false);
-  } else {
-    userModel.encrypt(username, password, (err, derivedKey) => {
-      callback(err, derivedKey === user.passwd, user.admin);
-    });
-  }
+  userModel.get(username, (user) => {
+    if (!user) {
+      callback(null, false, false);
+    } else {
+      userModel.encrypt(username, password, (err, derivedKey) => {
+        callback(err, derivedKey === user.passwd, user.admin);
+      });
+    }
+  })
 };
 
 module.exports = {check};
