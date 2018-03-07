@@ -38,6 +38,14 @@ const encrypt = (username, password, callback) => {
   }
 };
 
+const get = (username, callback) => {
+  var user = { username: username };
+  etcdUtils.get(etcdConfig.userPath, (res) => {
+    logger.info(res);
+    callback(null);
+  });
+};
+
 const update = (username, password, admin, modify, callback) => {
   if (typeof modify === 'undefined') {
     callback(null, false);
@@ -86,4 +94,4 @@ const remove = (username, callback) => {
 };
 
 // module exports
-module.exports = {encrypt, db, update, remove};
+module.exports = {encrypt, get, update, remove};
