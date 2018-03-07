@@ -20,7 +20,7 @@
 const unirest = require('unirest');
 
 const get = (path, next) => {
-  unirest.get(key)
+  unirest.get(path)
     .end((res) => {
       next(res);
     })
