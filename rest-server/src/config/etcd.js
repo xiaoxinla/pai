@@ -24,6 +24,7 @@ const unirest = require('unirest');
 const etcdUtils = require('../utils/etcd');
 const user = require('../models/user');
 const indexConfig = require('./index');
+const logger = require('../config/logger');
 
 let etcdConfig = {
   etcdUri: process.env.ETCD_URI,
