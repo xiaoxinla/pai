@@ -100,6 +100,7 @@ const prepareStoragePath = () => {
 
 if (indexConfig.env !== 'test') {
   etcdUtils.get(etcdConfig.storagePath(), (res) => {
+    logger.info(res);
     if (res.status === 200) {
       logger.info('storage path already exist');
     } else {
